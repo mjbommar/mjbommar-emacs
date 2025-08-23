@@ -684,6 +684,17 @@
   :ensure t
   :after (treemacs projectile))
 
+;;; Terminal Compatibility Keybindings
+;; These remappings avoid conflicts with Ghostty terminal keybindings
+
+;; Remap recenter since Ctrl+l is used by terminal for clear screen
+(global-set-key (kbd "C-c l") 'recenter-top-bottom)  ; Primary alternative
+(global-set-key (kbd "M-l") 'recenter-top-bottom)    ; Secondary alternative
+
+;; Note: C-0 through C-9 conflict with terminal tab switching but keeping them for now
+;; Note: Paragraph navigation with M-up/M-down may conflict with terminal split navigation
+;;       Use M-{ and M-} as alternatives for backward/forward paragraph if needed
+
 ;;; Quality of Life
 
 ;; Which-key for discovering keybindings
