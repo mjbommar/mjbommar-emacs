@@ -54,6 +54,28 @@
  mouse-wheel-progressive-speed nil
  display-line-numbers-type 'relative )
 
+;; Enhanced clipboard integration for bidirectional copy/paste
+(setq select-enable-clipboard t)      ; Use system clipboard
+(setq select-enable-primary t)        ; Also use PRIMARY selection for middle-click paste
+(setq save-interprogram-paste-before-kill t) ; Save clipboard before replacing
+
+;; For terminal Emacs - ensure xclip integration works
+(when (and (not (display-graphic-p))
+           (executable-find "xclip"))
+  (setq interprogram-cut-function
+        (lambda (text &optional _push)
+          (let* ((process-connection-type nil)
+                 (proc (start-process "xclip" "*Messages*" "xclip" "-selection" "clipboard")))
+            (process-send-string proc text)
+            (process-send-eof proc))))
+  
+  (setq interprogram-paste-function
+        (lambda ()
+          (shell-command-to-string "xclip -selection clipboard -o"))))
+
+;; Make mouse operations copy to clipboard
+(setq mouse-drag-copy-region t)
+
 ;; Enable useful modes
 (global-display-line-numbers-mode 1)
 (column-number-mode 1)
