@@ -1,0 +1,56 @@
+# Emacs temporary files
+*~
+\#*\#
+.\#*
+*.elc
+.dir-locals.el
+
+# Package directories (will be installed on first run)
+/elpa/
+/quelpa/
+/straight/
+
+# Cache and temporary directories
+/eln-cache/
+/auto-save-list/
+/transient/
+/etc/
+/var/
+/.cache/
+/server/
+
+# Backup files
+*.bak
+*.backup
+
+# Custom settings
+custom.el
+/etc/custom.el
+
+# Personal data
+/recentf
+/places
+/savehist
+/projectile-bookmarks.eld
+/projects
+.authinfo
+.authinfo.gpg
+
+# LSP and language servers
+/.lsp-session-*
+/lsp-cache/
+/.dap-breakpoints
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+test-*.el
+debug-*.el
+*-test.el
+
+# Temporary files
+/tmp/
+*.tmp
+*.temp
