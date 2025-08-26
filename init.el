@@ -576,13 +576,29 @@
                                 (text-mode . "")))))))
 
 ;; AI Code Completion with Minuet (Copilot-style inline completion)
+
+;; Define toggle function before use-package
+(defun my/toggle-minuet ()
+  "Toggle Minuet auto-suggestion mode in the current buffer."
+  (interactive)
+  (require 'minuet)  ; Ensure minuet is loaded
+  (if minuet-auto-suggestion-mode
+      (progn
+        (minuet-auto-suggestion-mode -1)
+        (message "Minuet auto-suggestions disabled"))
+    (progn
+      (minuet-auto-suggestion-mode 1)
+      (message "Minuet auto-suggestions enabled"))))
+
 (use-package minuet
   :ensure t  ; Ensure it's installed from MELPA
-  :demand t  ; Load immediately, don't defer
+  :defer t  ; Defer loading but define autoloads
+  :commands (minuet-auto-suggestion-mode minuet-complete-with-minibuffer minuet-show-suggestion)
   :bind
   (("M-y" . minuet-complete-with-minibuffer) ; minibuffer completion
    ("M-i" . minuet-show-suggestion)          ; overlay ghost text
    ("C-c M" . minuet-configure-provider)     ; configure provider
+   ("C-c m" . my/toggle-minuet)              ; toggle minuet
    :map minuet-active-mode-map
    ;; Active when suggestion is shown
    ("M-p" . minuet-previous-suggestion)
@@ -602,8 +618,8 @@
   ;; But let's make sure:
   (plist-put minuet-claude-options :api-key "ANTHROPIC_API_KEY")
   
-  ;; Enable auto-suggestion in programming modes
-  (add-hook 'prog-mode-hook #'minuet-auto-suggestion-mode)
+  ;; Minuet is now disabled by default - use the toggle command to enable
+  ;; (removed the automatic hook to enable in prog-mode)
   
   ;; Method 2: Direct key (less secure - don't commit this!)
   ;; (plist-put minuet-claude-options :api-key (lambda () "sk-ant-YOUR-KEY-HERE"))
