@@ -19,7 +19,7 @@ Emacs 30 already ships `use-package`, `which-key`, `eglot`, `project`,
 `modus-themes` and more. Most of what a config used to install is now in the
 box.
 
-Everything is verifiable: `./scripts/smoke.sh` byte-compiles all 14 modules,
+Everything is verifiable: `./scripts/smoke.sh` byte-compiles all 15 modules,
 loads the whole configuration, and asserts every keybinding resolves to the
 command it claims.
 
@@ -184,7 +184,8 @@ lisp/
   mjb-formats.el    json/toml/yaml/csv/org, tree-sitter grammars
   mjb-shell.el      eshell + ansi-term (built-in; no packages)
   mjb-ai.el         multi-provider chat + inline completion (no packages)
-  mjb-keys.el       THE keybinding table
+  mjb-keys.el       THE keybinding table + section data
+  mjb-cheatsheet.el C-c ? reference buffer (autoloaded, not required)
 scripts/
   smoke.sh              byte-compile + load + key check
   check-keys.el         asserts no collisions and no dead bindings
@@ -200,11 +201,33 @@ when you want the compiled speed back.
 
 ## Keys
 
-See [KEYBOARD.md](KEYBOARD.md) — it is **generated** from the key table, so it
-cannot drift from the code.
+**`C-c ?` opens a cheat sheet** with every binding in it — two columns when the
+window is at least ~104 columns wide, one below that. `q` closes it, `g`
+refreshes. It is rendered from `mjb-key-table` at display time, so it shows what
+is actually bound, not what someone remembered to write down.
+
+To have it open instead of `*scratch*` at startup:
+
+```elisp
+(setq mjb-cheatsheet-at-startup t)
+```
+
+That only applies when Emacs starts with no file arguments — `emacs foo.tex`
+still lands you in `foo.tex`. It costs nothing at startup either way: the
+renderer lives in `lisp/mjb-cheatsheet.el` and is **autoloaded**, so it is not
+read until you press the key (measured at −0.6 ± 3 ms, i.e. free; loading it
+eagerly cost 6 ms, which is why it is a separate file).
+
+[KEYBOARD.md](KEYBOARD.md) is the same content as a committed file, **generated**
+from the same table and the same section data by `scripts/gen-keyboard-doc.el`.
+The buffer and the file cannot disagree, and neither can drift from the code.
 
 The short version: `C-c a` AI, `C-c c` code, `C-c s` search, `C-c t` toggles,
 `C-c p` project, `C-c e` file sidebar, `C-x t` tabs, `C-x g` magit.
+
+Emacs 30's built-in `which-key` also shows the options for a prefix if you pause
+after `C-c a`, so the cheat sheet is for "what exists", which-key for "what
+comes next".
 
 Nothing important is bound to `C-.` `C-;` `C-=` `C->` or Control-Shift-letter:
 those have no legacy terminal encoding and cannot be transmitted through tmux.
@@ -250,7 +273,7 @@ The primary environment is `emacs -nw` inside tmux inside Ghostty.
 ./scripts/smoke.sh
 ```
 
-Checks that all 14 modules byte-compile with zero warnings, that the whole
+Checks that all 15 modules byte-compile with zero warnings, that the whole
 configuration loads with no errors, and that every declared keybinding resolves
 to the command it claims — including that `M-y` is still `yank-pop`.
 

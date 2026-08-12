@@ -5,6 +5,11 @@
 ;; KEYBOARD.md documented five bindings that did not work, including nine cape
 ;; commands that were shadowed and dead (F-04).
 ;;
+;; Section layout, mode-local keys and the deliberately-unbound list all come
+;; from mjb-keys.el (`mjb-keys-grouped', `mjb-mode-local-keys',
+;; `mjb-keys-unbound').  They used to be duplicated here, which meant the
+;; in-Emacs cheat sheet (\\[mjb-cheatsheet]) and this file could disagree.
+;;
 ;; Usage:  emacs --batch ... -l scripts/gen-keyboard-doc.el
 ;;; Code:
 
@@ -16,14 +21,12 @@
     (dolist (r rows)
       (insert (format "| `%s` | `%s` | %s |\n" (nth 0 r) (nth 1 r) (nth 2 r))))))
 
-(defun mjb-gen--match (prefix)
-  (seq-filter (lambda (e) (string-prefix-p prefix (car e))) mjb-key-table))
-
 (with-temp-file (expand-file-name "KEYBOARD.md" user-emacs-directory)
   (insert "# Keyboard reference\n\n")
   (insert "**This file is generated — do not edit it by hand.**\n")
   (insert "It is produced from `mjb-key-table` in `lisp/mjb-keys.el` by\n")
   (insert "`scripts/gen-keyboard-doc.el`, so it cannot drift from the code.\n")
+  (insert "The same data renders the in-Emacs cheat sheet on `C-c ?`.\n")
   (insert "Regenerate after changing a binding:\n\n")
   (insert "```sh\nemacs --batch --eval \"(setq user-emacs-directory \\\"$PWD/\\\")\" \\\n")
   (insert "  -l early-init.el -l init.el -l scripts/gen-keyboard-doc.el\n```\n\n")
@@ -42,38 +45,20 @@
   (insert "| `C-x t` | tabs (Emacs's built-in `tab-prefix-map`) |\n")
   (insert "| `C-x g` | magit |\n")
 
-  (mjb-gen--section "AI" (mjb-gen--match "C-c a"))
-  (mjb-gen--section "Code" (mjb-gen--match "C-c c"))
-  (mjb-gen--section "Search" (mjb-gen--match "C-c s"))
-  (mjb-gen--section "Toggles" (mjb-gen--match "C-c t"))
-  (mjb-gen--section "Motion"
-                    (seq-filter (lambda (e) (string-prefix-p "M-" (car e))) mjb-key-table))
-  (mjb-gen--section
-   "Everything else"
-   (seq-remove (lambda (e)
-                 (or (string-prefix-p "M-" (car e))
-                     (seq-some (lambda (p) (string-prefix-p p (car e)))
-                               '("C-c a" "C-c c" "C-c s" "C-c t"))))
-               mjb-key-table))
+  ;; Sections, from the shared grouping.
+  (pcase-dolist (`(,title . ,rows) (mjb-keys-grouped))
+    (mjb-gen--section title rows))
 
   (insert "\n## Deliberately NOT bound\n\n")
   (insert "| Key | Stays | Why |\n|---|---|---|\n")
-  (insert "| `M-y` | `yank-pop` | the old config's minuet took it; core muscle memory (R-063) |\n")
-  (insert "| `M-l` | `downcase-word` | recenter lives on `C-c l` instead |\n")
-  (insert "| `M-0` | `digit-argument` | treemacs had taken it; tabs use `C-x t <n>` |\n")
-  (insert "| `C-.` `C-;` `C-=` `C->` `C-<` `C-S-c` | unbound | cannot be typed in this terminal (F-06) |\n")
+  (dolist (r mjb-keys-unbound)
+    (insert (format "| `%s` | `%s` | %s |\n" (nth 0 r) (nth 1 r) (nth 2 r))))
 
   (insert "\n## Mode-local keys\n\n")
   (insert "These live in their own mode maps and cannot collide with the table above.\n\n")
   (insert "| Mode | Key | Does |\n|---|---|---|\n")
-  (insert "| LaTeX | `C-c C-c` | build with latexmk |\n")
-  (insert "| LaTeX | `C-c C-v` | open the PDF |\n")
-  (insert "| LaTeX | `C-c C-k` | clean aux files |\n")
-  (insert "| LaTeX | `C-c C-t` | RefTeX table of contents |\n")
-  (insert "| LaTeX | `C-c (` `C-c )` `C-c [` | RefTeX label / ref / cite |\n")
-  (insert "| Claude chat buffer | `C-c C-c` `C-c C-k` | send / cancel |\n")
-  (insert "| corfu | `TAB` `S-TAB` `RET` | next / previous / insert |\n")
-  (insert "| vertico | `C-j` `C-k` | next / previous candidate |\n")
+  (dolist (r mjb-mode-local-keys)
+    (insert (format "| %s | `%s` | %s |\n" (nth 0 r) (nth 1 r) (nth 2 r))))
 
   (insert (format "\n---\n\n%d global bindings, verified by `scripts/check-keys.el`.\n"
                   (length mjb-key-table))))

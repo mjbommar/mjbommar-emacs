@@ -3,6 +3,7 @@
 **This file is generated — do not edit it by hand.**
 It is produced from `mjb-key-table` in `lisp/mjb-keys.el` by
 `scripts/gen-keyboard-doc.el`, so it cannot drift from the code.
+The same data renders the in-Emacs cheat sheet on `C-c ?`.
 Regenerate after changing a binding:
 
 ```sh
@@ -90,6 +91,7 @@ or a function key, all of which a terminal can send.
 | Key | Command | Does |
 |---|---|---|
 | `C-c e` | `mjb-sidebar-toggle` | Toggle file sidebar |
+| `C-c ?` | `mjb-cheatsheet` | This cheat sheet |
 | `C-c l` | `recenter-top-bottom` | Recenter (C-l alternative) |
 | `C-c v` | `mjb-expand-region` | Expand region |
 | `C-c V` | `mjb-contract-region` | Contract region |
@@ -106,10 +108,10 @@ or a function key, all of which a terminal can send.
 
 | Key | Stays | Why |
 |---|---|---|
-| `M-y` | `yank-pop` | the old config's minuet took it; core muscle memory (R-063) |
-| `M-l` | `downcase-word` | recenter lives on `C-c l` instead |
-| `M-0` | `digit-argument` | treemacs had taken it; tabs use `C-x t <n>` |
-| `C-.` `C-;` `C-=` `C->` `C-<` `C-S-c` | unbound | cannot be typed in this terminal (F-06) |
+| `M-y` | `yank-pop` | muscle memory; minuet took it (R-063) |
+| `M-l` | `downcase-word` | recenter is on C-c l instead |
+| `M-0` | `digit-argument` | treemacs had it; tabs use C-x t <n> |
+| `C-. C-; C-= C-> C-<` | `unbound` | unencodable in this terminal (F-06) |
 
 ## Mode-local keys
 
@@ -121,11 +123,12 @@ These live in their own mode maps and cannot collide with the table above.
 | LaTeX | `C-c C-v` | open the PDF |
 | LaTeX | `C-c C-k` | clean aux files |
 | LaTeX | `C-c C-t` | RefTeX table of contents |
-| LaTeX | `C-c (` `C-c )` `C-c [` | RefTeX label / ref / cite |
-| Claude chat buffer | `C-c C-c` `C-c C-k` | send / cancel |
-| corfu | `TAB` `S-TAB` `RET` | next / previous / insert |
-| vertico | `C-j` `C-k` | next / previous candidate |
+| LaTeX | `C-c ( ) [` | RefTeX label / ref / cite |
+| AI chat | `C-c C-c / C-c C-k` | send / cancel |
+| corfu | `TAB / S-TAB / RET` | next / previous / insert |
+| vertico | `C-j / C-k` | next / previous candidate |
+| eshell | `C-u C-c '` | ansi-term, for a real tty |
 
 ---
 
-42 global bindings, verified by `scripts/check-keys.el`.
+43 global bindings, verified by `scripts/check-keys.el`.

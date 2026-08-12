@@ -130,6 +130,7 @@
     ("C-c t f" flymake-mode             "Syntax checking")
 
     ;; --- Top level --------------------------------------------------------
+    ("C-c ?"   mjb-cheatsheet           "This cheat sheet")
     ("C-c l"   recenter-top-bottom      "Recenter (C-l alternative)")
     ("C-c v"   mjb-expand-region        "Expand region")
     ("C-c V"   mjb-contract-region      "Contract region")
@@ -205,6 +206,82 @@ Deliberately NOT bound, and why:
 (with-eval-after-load 'vertico
   (keymap-set vertico-map "C-j" #'vertico-next)
   (keymap-set vertico-map "C-k" #'vertico-previous))
+
+
+(defgroup mjb-keys nil "Keybindings and the cheat sheet." :group 'keyboard)
+
+;;;; Grouping (shared with scripts/gen-keyboard-doc.el) --------------------------
+;; The section layout is data, not logic duplicated in two places: both the
+;; `mjb-cheatsheet' buffer and the generated KEYBOARD.md consume these, so the
+;; on-screen sheet and the committed file cannot disagree.
+
+(defconst mjb-key-sections
+  '(("AI"      "C-c a")
+    ("Code"    "C-c c")
+    ("Search"  "C-c s")
+    ("Toggles" "C-c t")
+    ("Motion"  "M-"))
+  "Ordered (TITLE PREFIX...) groups over `mjb-key-table'.
+Anything matching no group lands in \"Everything else\".")
+
+(defconst mjb-mode-local-keys
+  '(("LaTeX"       "C-c C-c"             "build with latexmk")
+    ("LaTeX"       "C-c C-v"             "open the PDF")
+    ("LaTeX"       "C-c C-k"             "clean aux files")
+    ("LaTeX"       "C-c C-t"             "RefTeX table of contents")
+    ("LaTeX"       "C-c ( ) ["           "RefTeX label / ref / cite")
+    ("AI chat"     "C-c C-c / C-c C-k"   "send / cancel")
+    ("corfu"       "TAB / S-TAB / RET"   "next / previous / insert")
+    ("vertico"     "C-j / C-k"           "next / previous candidate")
+    ("eshell"      "C-u C-c '"           "ansi-term, for a real tty"))
+  "Keys living in their own mode maps; they cannot collide with `mjb-key-table'.")
+
+(defconst mjb-keys-unbound
+  '(("M-y"  "yank-pop"       "muscle memory; minuet took it (R-063)")
+    ("M-l"  "downcase-word"  "recenter is on C-c l instead")
+    ("M-0"  "digit-argument" "treemacs had it; tabs use C-x t <n>")
+    ("C-. C-; C-= C-> C-<"
+            "unbound"        "unencodable in this terminal (F-06)"))
+  "Keys deliberately left alone, and why.")
+
+(defun mjb-keys-grouped ()
+  "Return ((TITLE . ROWS) ...) covering `mjb-key-table' exactly once."
+  (let ((rest mjb-key-table) groups)
+    (dolist (sec mjb-key-sections)
+      (let ((hit (seq-filter
+                  (lambda (e) (seq-some (lambda (p) (string-prefix-p p (car e)))
+                                        (cdr sec)))
+                  rest)))
+        (setq rest (seq-remove (lambda (e) (memq e hit)) rest))
+        (push (cons (car sec) hit) groups)))
+    (append (nreverse groups) (list (cons "Everything else" rest)))))
+
+(defcustom mjb-cheatsheet-at-startup nil
+  "When non-nil, show the cheat sheet instead of *scratch* at startup.
+Only applies when Emacs is started with no file arguments."
+  :type 'boolean :group 'mjb-keys)
+
+(defvar mjb-cheatsheet-buffer "*keys*")
+
+;; The renderer lives in mjb-cheatsheet.el and is autoloaded: it is ~100 lines
+;; that only matter once you press the key, and loading it eagerly cost a
+;; measured 6 ms of startup for nothing.
+(autoload 'mjb-cheatsheet "mjb-cheatsheet"
+  "Show every keybinding, generated from `mjb-key-table'." t)
+
+(defun mjb-cheatsheet--maybe-show ()
+  "Show the cheat sheet at startup when `mjb-cheatsheet-at-startup' is set.
+
+Runs from `emacs-startup-hook' rather than setting `initial-buffer-choice'
+at load time, for two reasons: the hook reads the variable *after*
+custom.el has been loaded, so toggling it actually takes effect; and it
+can check whether a file was opened, so `emacs foo.tex' still lands you
+in foo.tex."
+  (when (and mjb-cheatsheet-at-startup
+             (not (seq-some #'buffer-file-name (buffer-list))))
+    (mjb-cheatsheet)))
+
+(add-hook 'emacs-startup-hook #'mjb-cheatsheet--maybe-show)
 
 (provide 'mjb-keys)
 ;;; mjb-keys.el ends here
