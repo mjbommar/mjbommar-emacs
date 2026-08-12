@@ -37,10 +37,10 @@ or a function key, all of which a terminal can send.
 | `C-c a a` | `mjb-ai-chat` | Claude chat |
 | `C-c a s` | `mjb-ai-complete` | Inline suggestion at point |
 | `C-c a RET` | `mjb-ai-accept` | Accept suggestion |
+| `C-c a d` | `mjb-ai-dismiss` | Dismiss suggestion |
 | `C-c a p` | `mjb-ai-use-provider` | Switch provider (its default models) |
 | `C-c a m` | `mjb-ai-select-model` | Switch provider / model |
 | `C-c a ?` | `mjb-ai-status` | Providers, models, credentials |
-| `C-c a d` | `mjb-ai-dismiss` | Dismiss suggestion |
 
 ### Code
 
