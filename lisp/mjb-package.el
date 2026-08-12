@@ -29,6 +29,55 @@
 (require 'package)
 (require 'seq)
 
+;;;; Archives and trust (R-008, R-009) -------------------------------------------
+;; These take effect when a package is fetched, not when it is activated, so
+;; they live here rather than in init.el alongside `package-initialize'.
+
+(setq package-archives
+      '(("gnu"    . "https://elpa.gnu.org/packages/")
+        ("nongnu" . "https://elpa.nongnu.org/nongnu/")
+        ("melpa"  . "https://melpa.org/packages/"))
+      ;; Prefer signed GNU/NonGNU ELPA over MELPA when a package is on both.
+      package-archive-priorities '(("gnu" . 3) ("nongnu" . 2) ("melpa" . 1))
+
+      ;; Require a valid OpenPGP signature.  The default is `allow-unsigned',
+      ;; which checks a signature when one is present and silently accepts the
+      ;; package when it is not -- so an archive that stops signing downgrades
+      ;; you without a word.
+      ;;
+      ;; MELPA signs nothing: it builds from upstream git on its own servers,
+      ;; so there is no author signature to publish.  Naming it below is an
+      ;; accurate statement of where trust stops rather than a loophole, and it
+      ;; is deliberately the ONLY entry, so a second unsigned archive would be
+      ;; a visible diff.  Exactly one installed package comes from MELPA
+      ;; (vterm); the other 16 are signed and were verified on install.
+      package-check-signature t
+      package-unsigned-archives '("melpa"))
+
+;; `package-refresh-contents' imports Emacs's own keyring into
+;; `package-gnupghome-dir' by itself, but only when signature checking is on.
+;; Without gpg on PATH verification silently degrades, so say so rather than
+;; look like we are checking when we are not.
+(unless (executable-find "gpg")
+  (message "mjb: gpg not found -- package signatures CANNOT be verified"))
+
+(defun mjb-check-signatures ()
+  "Report which installed packages carry a verified signature.
+package.el writes NAME-VERSION.signed next to the package directory when it
+verified a signature at install time, so this reads evidence rather than
+re-asserting policy."
+  (interactive)
+  (let (signed unsigned)
+    (dolist (cell package-alist)
+      (let* ((desc (cadr cell))
+             (dir (and desc (package-desc-dir desc))))
+        (if (and dir (file-exists-p (concat (directory-file-name dir) ".signed")))
+            (push (car cell) signed)
+          (push (car cell) unsigned))))
+    (message "mjb: %d/%d packages signed%s"
+             (length signed) (length package-alist)
+             (if unsigned (format "; unsigned: %s" (nreverse unsigned)) ""))))
+
 (defvar mjb-packages
   '(vertico orderless marginalia consult corfu cape ; completion: wrap built-ins
     magit diff-hl                                   ; git: essential complexity

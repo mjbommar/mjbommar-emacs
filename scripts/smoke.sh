@@ -51,7 +51,7 @@ else
 fi
 
 echo
-echo "== package provenance (R-008) =="
+echo "== package provenance + signatures (R-008, R-009) =="
 if emacs --batch \
      --eval "(setq user-emacs-directory \"$REPO/\")" \
      -l "$REPO/early-init.el" -l "$REPO/init.el" \

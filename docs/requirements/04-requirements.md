@@ -95,32 +95,47 @@ declared.
 *Test:* delete a `use-package` form, run the command, confirm the ELPA/elpaca
 directory for that package is gone.
 
-### R-006 · Startup budget — P0 [goal 1] *(revised twice)*
+### R-006 · Startup budget — P0 [goal 1] *(revised twice; re-measured 2026-08-12)*
 
-**0.5 s → 0.15 s → 0.21 s. Measured: 0.195 s. The 0.15 s target was missed.**
+**0.5 s → 0.15 s → 0.21 s. Measured: 0.114 s.**
 
 The 0.15 s figure came from an attribution that assumed the 130 ms freed by
 removing `doom-modeline`, `dashboard`, `projectile` and `centaur-tabs` would not
 be replaced. It was: the rebuild eagerly loads vertico, corfu, cape, marginalia
 and diff-hl, plus 13 module files.
 
-Measured attribution at 0.195 s, with every module byte-compiled, native
-compilation on and `package-quickstart` generated: 67 ms modules, 12 ms
-`load-theme`, 10 ms `package-initialize`, ~105 ms Emacs tty startup and frame
-setup. Net against the old config: **0.230 s → 0.195 s**, ~15%.
+**The earlier 0.195 s reading was a measurement artifact, not the steady state.**
+`load-prefer-newer` is on (deliberately — see R-007 notes), so a module whose
+`.elc` is older than its `.el` is loaded *from source*, uncompiled. Editing a
+module and measuring before recompiling therefore times the source path. At the
+time of that reading `mjb-ai.el` — the largest module — was stale. With all 14
+modules compiled current, the same measurement gives **0.114 s**, and the
+0.15 s target is in fact met.
 
-Full reasoning and the remaining options — deferring the completion packages
-(~20 ms, costs live completion in the first buffer), dropping the theme (12 ms,
-refuses goal 3), or running a daemon (removes the question entirely) — are in
+The correction cuts both ways: it means the number moves whenever a module is
+edited, so a startup measurement is only meaningful immediately after
+`M-x mjb-recompile`. The 0.21 s ceiling stays as the regression guard because it
+must hold in the *stale* case too — that is the state a user is actually in
+after editing a module.
+
+Attribution at 0.114 s: ~12 ms `load-theme`, ~10 ms `package-initialize`,
+the remainder Emacs tty startup, frame setup and the 13 compiled modules.
+Net against the old config: **0.230 s → 0.114 s**, ~50%.
+
+Remaining options — deferring the completion packages (~20 ms, costs live
+completion in the first buffer), dropping the theme (12 ms, refuses goal 3), or
+running a daemon (removes the question entirely) — are in
 [`08-goals-and-decisions.md`](08-goals-and-decisions.md) §5.
 
 *Test:*
 ```
+M-x mjb-recompile          # required: see above
 TERM=xterm-256color emacs --init-directory=<repo> -nw \
   --eval '(progn (message "%s" (emacs-init-time)) (kill-emacs))'
 ```
-reports ≤ 0.21 s on a warm cache, averaged over five runs. This is now a
-regression guard, not a target.
+reports ≤ 0.21 s on a warm cache, averaged over five runs. Note this needs a
+real pty — under a redirected stdin Emacs exits before loading init and reports
+a meaningless 0.02 s. This is a regression guard, not a target.
 
 ### R-008 · Dependency provenance is ranked and bounded — P0 [new] [goal 2]
 
@@ -151,6 +166,39 @@ built-in equivalence list.
 produces no output on stderr except the Debian `site-start.d` `flavor` messages,
 which originate outside this repo. Byte-compiling every `lisp/*.el` produces no
 `free variable` or `undefined function` warnings for code this repo owns.
+
+### R-009 · Package signatures are verified, and the exception is named — P0 [new] [goal 2]
+
+`package-check-signature` is `t`, not the Emacs default `allow-unsigned`.
+`allow-unsigned` verifies a signature when one is present and silently accepts
+the package when it is not, so an archive that stops signing — or a fetch that
+is tampered with in a way that drops the `.sig` — downgrades you without a word.
+
+MELPA publishes no signatures at all: it builds from upstream git on its own
+servers, so there is no author signature to check. It is therefore listed in
+`package-unsigned-archives`, which is an accurate statement of where trust stops
+rather than a loophole. It must remain the **only** entry, so that adding a
+second unsigned archive shows up as a diff in review.
+
+Verification needs `gpg` on `PATH`; without it `package-check-signature`
+degrades silently, so the configuration says so at startup instead of appearing
+to verify when it is not. The keyring is imported into `package-gnupghome-dir`
+by `package-refresh-contents` itself, but only when signature checking is
+already on.
+
+*Rationale:* R-008 ranked archives by trust but did not enforce anything — under
+the shipped default, the ranking was a preference, not a control. At the time
+R-008 was written 71 of 77 installed packages were unsigned MELPA builds; the
+rebuild inverted that to 16 signed against 1 unsigned, which is what makes
+enforcement affordable now.
+
+*Test:* `M-x mjb-check-signatures` reads the `NAME-VERSION.signed` files that
+package.el writes on successful verification and reports the count — evidence,
+not a restatement of policy. Current: 16/17 signed, unsigned `(vterm)`.
+Enforcement is verified adversarially in a throwaway `package-user-dir`: a
+signed GNU ELPA package installs and gets a `.signed` file; the same MELPA
+package is **refused** with `Unsigned file ... at https://melpa.org/packages/`
+when `package-unsigned-archives` is emptied, and installs when it is restored.
 
 ---
 
@@ -703,9 +751,10 @@ scope and its keybinding prefix, if any.
 | R-003 | 0 | preserve | Compile warnings silent but reachable |
 | R-004 | 0 | fix | Declared set + lockfile + drift detection *(revised — exact pinning is impossible on MELPA; see the entry)* |
 | R-005 | 1 | new | `M-x mjb-remove-unused-packages` (wraps `package-autoremove`) |
-| R-006 | 0 | goal 1 | Startup ≤ 0.21 s; measured 0.195 s *(revised twice — 0.15 s target missed, see doc 08)* |
+| R-006 | 0 | goal 1 | Startup ≤ 0.21 s; measured **0.114 s** *(re-measured 2026-08-12; the 0.195 s reading timed stale `.elc`)* |
 | R-007 | 0 | new | Zero load errors/warnings |
 | R-008 | 0 | goal 2 | Provenance ranked; ≤ 20 MELPA packages *(new)* |
+| R-009 | 0 | goal 2 | Signatures enforced (`package-check-signature` = `t`); MELPA the sole named exception *(new)* |
 | R-010 | 0 | fix | Versioned backups, central directory |
 | R-011 | 0 | fix | Auto-save on |
 | R-012 | 1 | fix | Lock files on |

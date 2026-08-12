@@ -22,16 +22,14 @@
 ;; NOTE package-user-dir, package-quickstart-file, package-quickstart and
 ;; package-native-compile live in early-init.el -- Emacs activates packages
 ;; BETWEEN early-init and this file, so setting them here would be too late.
+;;
+;; Archives, priorities and signature policy live in mjb-package.el: they take
+;; effect at install time, not activation time, so they do not need to precede
+;; `package-initialize'.
 (require 'package)
-(setq package-archives
-      '(("gnu"    . "https://elpa.gnu.org/packages/")
-        ("nongnu" . "https://elpa.nongnu.org/nongnu/")
-        ("melpa"  . "https://melpa.org/packages/"))
-      ;; Prefer signed GNU/NonGNU ELPA over MELPA when a package is on both.
-      package-archive-priorities '(("gnu" . 3) ("nongnu" . 2) ("melpa" . 1)))
 (package-initialize)
 
-(require 'mjb-package)                   ; declared set, lockfile, pruning
+(require 'mjb-package)                   ; archives, signatures, declared set
 
 ;; --- Modules -----------------------------------------------------------------
 ;; Order matters: core first, keys last (it binds the others' commands).

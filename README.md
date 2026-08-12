@@ -120,6 +120,29 @@ Add a vLLM box or any other OpenAI-compatible server:
   "https://api.together.xyz/v1/chat/completions" "TOGETHER_API_KEY")
 ```
 
+## Package trust
+
+`package-check-signature` is `t`, not Emacs's default `allow-unsigned` — which
+verifies a signature when one is present and silently accepts the package when
+it is not, so an archive that stops signing downgrades you without a word.
+
+**16 of the 17 installed packages are signed** by the GNU/NonGNU ELPA keys and
+were verified on install. The seventeenth is `vterm`, from MELPA, which signs
+nothing at all: it builds from upstream git on its own servers, so there is no
+author signature to publish. MELPA is therefore the single entry in
+`package-unsigned-archives`, which states where trust actually stops rather than
+opening a hole — and `scripts/count-packages.el` fails if a second archive is
+ever added, if the check is weakened, or if a package outside the documented
+exception turns up unsigned.
+
+```
+M-x mjb-check-signatures     ; reads the .signed files package.el wrote
+```
+
+That reads evidence rather than restating policy. Verification needs `gpg` on
+`PATH`; without it the check degrades silently, so the config says so at startup
+instead of appearing to verify when it isn't.
+
 ## Credentials
 
 `auth-source` (`~/.authinfo.gpg`) first, then the provider's environment

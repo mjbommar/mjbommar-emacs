@@ -41,6 +41,43 @@ Installing any of them again is a regression.")
     (unless (package-installed-p p)
       (mjb-count--fail "%s is declared but not installed" p))))
 
+
+;;;; Signature policy (R-009) ---------------------------------------------------
+;; Reads the NAME-VERSION.signed files package.el writes on successful
+;; verification, so this is evidence rather than a restatement of the setq.
+
+(defconst mjb-signed-exempt-archives '("melpa")
+  "The only archives allowed to ship unsigned packages.
+Growing this list is the regression this test exists to catch.")
+
+(unless (eq package-check-signature t)
+  (mjb-count--fail "package-check-signature is %s, not t (R-009)"
+                   package-check-signature))
+
+(unless (equal package-unsigned-archives mjb-signed-exempt-archives)
+  (mjb-count--fail "package-unsigned-archives is %s; expected %s (R-009)"
+                   package-unsigned-archives mjb-signed-exempt-archives))
+
+(unless (executable-find "gpg")
+  (mjb-count--fail "gpg is not on PATH -- signatures cannot be verified (R-009)"))
+
+(let (unsigned)
+  (dolist (cell package-alist)
+    (let* ((desc (cadr cell))
+           (dir (and desc (package-desc-dir desc))))
+      (unless (and dir (file-exists-p (concat (directory-file-name dir) ".signed")))
+        (push (car cell) unsigned))))
+  (setq unsigned (nreverse unsigned))
+  (princ (format "signed:    %d/%d\n"
+                 (- (length package-alist) (length unsigned)) (length package-alist)))
+  ;; vterm is the one MELPA package and MELPA signs nothing; anything else
+  ;; turning up unsigned means a signed archive quietly stopped signing.
+  (dolist (p unsigned)
+    (unless (eq p 'vterm)
+      (mjb-count--fail "%s is unsigned and is not the documented exception (R-009)" p)))
+  (when unsigned
+    (princ (format "unsigned:  %s (documented exception)\n" unsigned))))
+
 (princ (format "\n%d failure(s)\n" mjb-count--failures))
 (kill-emacs (if (> mjb-count--failures 0) 1 0))
 ;;; count-packages.el ends here
