@@ -45,6 +45,7 @@
 (declare-function mjb-ai-dismiss "mjb-ai")
 (declare-function mjb-ai-status "mjb-ai")
 (declare-function mjb-ai-select-model "mjb-ai")
+(declare-function mjb-ai-use-provider "mjb-ai")
 (declare-function mjb-python-format-buffer "mjb-python")
 (declare-function mjb-install-treesit-grammars "mjb-formats")
 
@@ -97,6 +98,7 @@
     ("C-c a a" mjb-ai-chat              "Claude chat")
     ("C-c a s" mjb-ai-complete          "Inline suggestion at point")
     ("C-c a RET" mjb-ai-accept          "Accept suggestion")
+    ("C-c a p" mjb-ai-use-provider      "Switch provider (its default models)")
     ("C-c a m" mjb-ai-select-model      "Switch provider / model")
     ("C-c a ?" mjb-ai-status            "Providers, models, credentials")
 

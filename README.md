@@ -70,9 +70,9 @@ M-x mjb-install-treesit-grammars     # python, c, bash, json, yaml, toml, markdo
 
 ## AI: multi-provider, no packages
 
-`lisp/mjb-ai.el` (~330 lines) replaces gptel + minuet while keeping the
-multi-provider support they had. Three wire formats cover essentially
-everything:
+`lisp/mjb-ai.el` (590 lines, 456 excluding comments) replaces gptel + minuet
+while keeping the multi-provider support they had. Three wire formats cover
+essentially everything:
 
 | Wire | Endpoint | Providers |
 |---|---|---|
@@ -81,16 +81,43 @@ everything:
 | `gemini` | `:streamGenerateContent` | Google |
 
 Shipped and live-tested: `anthropic`, `openai`, `xai`, `gemini`, `ollama`.
-`C-c a m` switches provider and model; **model lists are fetched from each
-provider's `/models` endpoint**, so they never go stale.
+`C-c a p` switches provider (each carries its own default models);
+`C-c a m` picks an exact model; **model lists are fetched from each
+provider's `/models` endpoint**, so the picker never goes stale.
+
+Provider and model are two variables, so `C-c a p` sets both — switching
+provider alone would leave the previous provider's model name selected, which
+the new provider then rejects. Defaults as of 2026-08, each verified against
+the provider's live API:
+
+| Provider | Chat | Completion (latency-bound) |
+|---|---|---|
+| `anthropic` | `claude-opus-5` | `claude-haiku-4-5` |
+| `openai` | `gpt-5.6-sol` | `gpt-5.6-luna` |
+| `xai` | `grok-4.5` | `grok-4.3` |
+| `gemini` | `gemini-3.6-flash` | `gemini-3.5-flash-lite` |
+| `ollama` | asked, from the server's own `/models` | ” |
+
+These are a starting point, not a pin. Two places where the wire format differs
+per model, both found by actually calling the APIs rather than by reading docs:
+
+- GPT-5.x rejects `max_tokens` outright and wants `max_completion_tokens`;
+  every other OpenAI-compatible server still wants `max_tokens`.
+- Gemini 3.x rejects `thinkingBudget` with a bare 400 naming no field, and
+  takes `thinkingLevel`; 2.x is the other way round. Unversioned aliases like
+  `gemini-flash-latest` resolve to 3.x, so the version test matches the *old*
+  generations and lets everything else default forward.
 
 Add a vLLM box or any other OpenAI-compatible server:
 
 ```elisp
 (mjb-ai-add-openai-compatible 'gpu-box
-  "http://gpu-box.local:8000/v1/chat/completions")          ; no auth
-(mjb-ai-add-openai-compatible 'lambda
-  "https://<your-endpoint>/v1/chat/completions" "LAMBDA_API_KEY")
+  "http://gpu-box.local:8000/v1/chat/completions")          ; no auth, model asked
+(mjb-ai-add-openai-compatible 'gpu-box
+  "http://gpu-box.local:8000/v1/chat/completions"
+  nil "Qwen/Qwen3-Coder-30B-A3B-Instruct")                  ; served model as default
+(mjb-ai-add-openai-compatible 'together
+  "https://api.together.xyz/v1/chat/completions" "TOGETHER_API_KEY")
 ```
 
 ## Credentials
@@ -131,7 +158,7 @@ lisp/
   mjb-python.el     ruff format + lint, optional eglot, .venv detection
   mjb-formats.el    json/toml/yaml/csv/org, tree-sitter grammars
   mjb-shell.el      vterm, eshell
-  mjb-ai.el         Claude chat + inline completion (no packages)
+  mjb-ai.el         multi-provider chat + inline completion (no packages)
   mjb-keys.el       THE keybinding table
 scripts/
   smoke.sh              byte-compile + load + key check

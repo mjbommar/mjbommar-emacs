@@ -46,7 +46,7 @@
 (require 'mjb-python)                   ; ruff, flymake, optional eglot
 (require 'mjb-formats)                  ; json/yaml/toml/csv/org
 (require 'mjb-shell)                    ; vterm, eshell
-(require 'mjb-ai)                       ; gptel, minuet
+(require 'mjb-ai)                       ; multi-provider chat + completion
 (require 'mjb-keys)                     ; THE keybinding table
 
 ;; --- custom.el ---------------------------------------------------------------

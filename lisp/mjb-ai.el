@@ -51,31 +51,52 @@
      :models-url "https://api.anthropic.com/v1/models"
      :wire      anthropic
      :auth-host "api.anthropic.com"
-     :auth-env  "ANTHROPIC_API_KEY")
+     :auth-env  "ANTHROPIC_API_KEY"
+     :chat-model "claude-opus-5"
+     :fast-model "claude-haiku-4-5")
     (openai
      :url       "https://api.openai.com/v1/chat/completions"
      :models-url "https://api.openai.com/v1/models"
      :wire      openai
      :auth-host "api.openai.com"
-     :auth-env  "OPENAI_API_KEY")
+     :auth-env  "OPENAI_API_KEY"
+     ;; GPT-5.x hard-rejects max_tokens: "Unsupported parameter ... use
+     ;; max_completion_tokens instead" (400).  Other openai-wire servers
+     ;; (xAI, vLLM, Ollama, llama.cpp) still want plain max_tokens, so this
+     ;; is per-provider rather than per-wire.
+     :max-tokens-key "max_completion_tokens"
+     ;; GPT-5.6 ships as three durable tiers rather than one model:
+     ;; sol (flagship), terra (balanced, ~half sol), luna (fast, cheap).
+     :chat-model "gpt-5.6-sol"
+     :fast-model "gpt-5.6-luna")
     (xai
      :url       "https://api.x.ai/v1/chat/completions"
      :models-url "https://api.x.ai/v1/models"
      :wire      openai
      :auth-host "api.x.ai"
-     :auth-env  "XAI_API_KEY")
+     :auth-env  "XAI_API_KEY"
+     ;; 4.5 is the coding/agentic flagship; 4.3 is the cheaper generalist
+     ;; with a larger (1M) window.
+     :chat-model "grok-4.5"
+     :fast-model "grok-4.3")
     (gemini
      :url       "https://generativelanguage.googleapis.com/v1beta/models/%s:streamGenerateContent?alt=sse"
      :models-url "https://generativelanguage.googleapis.com/v1beta/models"
      :wire      gemini
      :auth-host "generativelanguage.googleapis.com"
-     :auth-env  "GEMINI_API_KEY")
+     :auth-env  "GEMINI_API_KEY"
+     ;; 3.6 Flash over 3.1 Pro deliberately: it is GA rather than preview,
+     ;; cheaper, ~2x faster, and ahead on coding.  3.1 Pro still leads on
+     ;; pure reasoning (GPQA, HLE) -- switch to it with C-c a m if you want
+     ;; that instead.
+     :chat-model "gemini-3.6-flash"
+     :fast-model "gemini-3.5-flash-lite")
     (ollama
      :url       "http://localhost:11434/v1/chat/completions"
      :models-url "http://localhost:11434/v1/models"
      :wire      openai
      :auth-host nil
-     :auth-env  nil))
+     :auth-env  nil))          ; local: no sensible default model, ask the server
   "Known inference providers.
 
 Each entry is (NAME . PLIST):
@@ -86,7 +107,16 @@ Each entry is (NAME . PLIST):
   :wire       `anthropic', `openai', or `gemini'.
   :auth-host  auth-source machine, or nil for no auth (local servers).
   :auth-env   environment variable to fall back on, or nil.
+  :max-tokens-key  openai wire only; body field for the output cap.
+              Defaults to \"max_tokens\"; GPT-5.x needs
+              \"max_completion_tokens\".
+  :chat-model default model for conversation, or nil to ask the server.
+  :fast-model default model for inline completion (latency-bound), or nil.
   :extra      alist of extra body fields.
+
+Model IDs go stale.  These are only the starting point -- \\[mjb-ai-select-model]
+fetches the live list from each provider, so you are never stuck with
+whatever was current when this file was written.
 
 Add a vLLM box with `mjb-ai-add-openai-compatible'."
   :type '(alist :key-type symbol :value-type plist) :group 'mjb-ai)
@@ -95,35 +125,44 @@ Add a vLLM box with `mjb-ai-add-openai-compatible'."
   "Provider used for conversation." :type 'symbol :group 'mjb-ai)
 
 (defcustom mjb-ai-chat-model "claude-opus-5"
-  "Model used for conversation." :type 'string :group 'mjb-ai)
+  "Model used for conversation.
+Kept in step with `mjb-ai-chat-provider' by \\[mjb-ai-use-provider]; set
+the two together rather than editing this alone."
+  :type 'string :group 'mjb-ai)
 
 (defcustom mjb-ai-completion-provider 'anthropic
   "Provider used for inline completion." :type 'symbol :group 'mjb-ai)
 
 (defcustom mjb-ai-completion-model "claude-haiku-4-5"
   "Model used for inline completion.
-Completion is latency-bound, so a fast model beats a smart one here."
+Completion is latency-bound, so a fast model beats a smart one here --
+each provider's `:fast-model' is the cheap tier for exactly that."
   :type 'string :group 'mjb-ai)
 
 (defcustom mjb-ai-max-tokens 16000
   "Output token ceiling for chat." :type 'integer :group 'mjb-ai)
 
 ;;;###autoload
-(defun mjb-ai-add-openai-compatible (name url &optional auth-env)
+(defun mjb-ai-add-openai-compatible (name url &optional auth-env model)
   "Register an OpenAI-compatible server NAME at URL.
 Covers vLLM, Ollama, llama.cpp, LM Studio, TGI and friends.  URL is the
 full chat-completions endpoint.  AUTH-ENV names an environment variable
-holding a token, or nil for an unauthenticated local server.
+holding a token, or nil for an unauthenticated local server.  MODEL is
+the served model name, used as this provider's default; omit it and you
+are asked, which queries the server's /models endpoint.
 
   (mjb-ai-add-openai-compatible \\='gpu-box
-    \"http://gpu-box.local:8000/v1/chat/completions\")"
+    \"http://gpu-box.local:8000/v1/chat/completions\"
+    nil \"Qwen/Qwen3-Coder-30B-A3B-Instruct\")"
   (setf (alist-get name mjb-ai-providers)
         (list :url url
               :models-url (replace-regexp-in-string
                            "/chat/completions\\'" "/models" url)
               :wire 'openai
               :auth-host nil
-              :auth-env auth-env))
+              :auth-env auth-env
+              :chat-model model
+              :fast-model model))
   (message "mjb-ai: registered %s -> %s" name url))
 
 (defun mjb-ai--provider (name)
@@ -175,6 +214,22 @@ holding a token, or nil for an unauthenticated local server.
          (url (plist-get p :url)))
     (if (eq (plist-get p :wire) 'gemini) (format url model) url)))
 
+(defun mjb-ai--gemini-thinking (model)
+  "Thinking config for Gemini MODEL, whose shape changed at generation 3.
+
+2.5 takes `thinkingBudget', and 0 turns thinking off outright.  3.x
+rejects `thinkingBudget' with a bare 400 \"invalid argument\" that names no
+field, and takes `thinkingLevel' instead -- which throttles thinking but
+cannot disable it, so the `maxOutputTokens' floor above still matters.
+
+The test matches the OLD generations, not the new ones, so unversioned
+aliases (`gemini-flash-latest') and models that do not exist yet get the
+current shape.  Those aliases resolve to 3.x today and do 400 on
+`thinkingBudget', which a match-the-new-ones rule got backwards."
+  (if (string-match-p "\\`gemini-[12]\\." model)
+      '((thinkingBudget . 0))
+    '((thinkingLevel . "low"))))
+
 (defun mjb-ai--body (provider model messages max-tokens)
   "JSON request body for PROVIDER.
 MESSAGES is a list of (ROLE . TEXT) with ROLE a string."
@@ -194,7 +249,8 @@ MESSAGES is a list of (ROLE . TEXT) with ROLE a string."
          ;; maxOutputTokens.  With a small budget the whole allowance is spent
          ;; on thoughts and you get an empty reply -- which looked exactly like
          ;; a parser bug until the raw response showed thoughtsTokenCount=16
-         ;; of a 24-token budget.  Scale the budget and cap thinking.
+         ;; of a 24-token budget.  Scale the budget and cap thinking; how you
+         ;; cap it depends on the generation (see `mjb-ai--gemini-thinking').
          `((contents . ,(vconcat
                          (mapcar (lambda (m)
                                    `((role . ,(if (equal (car m) "assistant") "model" "user"))
@@ -202,9 +258,10 @@ MESSAGES is a list of (ROLE . TEXT) with ROLE a string."
                                  messages)))
            (generationConfig
             . ((maxOutputTokens . ,(max 1024 max-tokens))
-               (thinkingConfig . ((thinkingBudget . 0)))))))
+               (thinkingConfig . ,(mjb-ai--gemini-thinking model))))))
         (_
-         `((model . ,model) (stream . t) (max_tokens . ,max-tokens)
+         `((model . ,model) (stream . t)
+           (,(intern (or (plist-get p :max-tokens-key) "max_tokens")) . ,max-tokens)
            (messages . ,(vconcat
                          (mapcar (lambda (m) `((role . ,(car m)) (content . ,(cdr m))))
                                  messages))))))
@@ -321,6 +378,34 @@ MESSAGES is a list of (ROLE . TEXT) with ROLE a string."
                         (append (alist-get 'models o) nil)))))
           (error nil))))))
 
+(defun mjb-ai--default-model (provider &optional fast)
+  "PROVIDER's default model; the FAST one when FAST is non-nil."
+  (plist-get (mjb-ai--provider provider) (if fast :fast-model :chat-model)))
+
+;;;###autoload
+(defun mjb-ai-use-provider (provider)
+  "Switch chat and completion to PROVIDER, using its own default models.
+
+This exists because provider and model are two separate variables:
+setting the provider alone would leave the previous provider's model name
+selected, which the new provider then rejects.  A provider with no
+default model (a local server, whose model set is unknowable from here)
+is queried live instead."
+  (interactive
+   (list (intern (completing-read
+                  "Provider: "
+                  (mapcar (lambda (c) (symbol-name (car c))) mjb-ai-providers)
+                  nil t nil nil (symbol-name mjb-ai-chat-provider)))))
+  (let* ((models (unless (mjb-ai--default-model provider)
+                   (mjb-ai-list-models provider)))
+         (chat (or (mjb-ai--default-model provider)
+                   (completing-read (format "Chat model (%s): " provider)
+                                    (or models '()) nil nil (car models))))
+         (fast (or (mjb-ai--default-model provider t) chat)))
+    (setq mjb-ai-chat-provider provider        mjb-ai-chat-model chat
+          mjb-ai-completion-provider provider  mjb-ai-completion-model fast)
+    (message "mjb-ai: %s -- chat %s, completion %s" provider chat fast)))
+
 ;;;###autoload
 (defun mjb-ai-select-model (&optional for-completion)
   "Choose provider and model for chat.
@@ -333,7 +418,10 @@ With prefix FOR-COMPLETION, set the inline-completion pair instead."
          (models (mjb-ai-list-models provider))
          (model (completing-read
                  (format "Model (%s): " provider) (or models '()) nil nil
-                 (car models))))
+                 ;; Seed with this provider's default, not with whatever the
+                 ;; API happened to list first.
+                 (or (mjb-ai--default-model provider for-completion)
+                     (car models)))))
     (if for-completion
         (setq mjb-ai-completion-provider provider mjb-ai-completion-model model)
       (setq mjb-ai-chat-provider provider mjb-ai-chat-model model))
