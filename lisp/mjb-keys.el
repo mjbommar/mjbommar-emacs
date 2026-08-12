@@ -40,16 +40,16 @@
 (declare-function mjb-sidebar-toggle "mjb-project")
 (declare-function mjb-terminal "mjb-shell")
 (declare-function mjb-ai-chat "mjb-ai")
-(declare-function mjb-ai-suggest "mjb-ai")
-(declare-function mjb-ai-toggle-completion "mjb-ai")
+(declare-function mjb-ai-complete "mjb-ai")
+(declare-function mjb-ai-accept "mjb-ai")
+(declare-function mjb-ai-dismiss "mjb-ai")
 (declare-function mjb-ai-status "mjb-ai")
 (declare-function mjb-python-format-buffer "mjb-python")
 (declare-function mjb-install-treesit-grammars "mjb-formats")
 
 ;; Mode maps and commands from packages loaded on demand.  Declared so this
-;; file byte-compiles without eagerly loading eglot, corfu, vertico or minuet.
+;; file byte-compiles without eagerly loading eglot, corfu or vertico.
 (defvar eglot-mode-map)
-(defvar minuet-active-mode-map)
 (defvar corfu-map)
 (defvar vertico-map)
 (declare-function eglot-rename "eglot")
@@ -62,11 +62,6 @@
 (declare-function corfu-insert "corfu")
 (declare-function vertico-next "vertico")
 (declare-function vertico-previous "vertico")
-(declare-function minuet-accept-suggestion-line "minuet")
-(declare-function minuet-accept-suggestion "minuet")
-(declare-function minuet-next-suggestion "minuet")
-(declare-function minuet-previous-suggestion "minuet")
-(declare-function minuet-dismiss-suggestion "minuet")
 (declare-function which-key-add-key-based-replacements "which-key")
 
 ;;;; Prefix allocation ----------------------------------------------------------
@@ -99,8 +94,8 @@
 (defconst mjb-key-table
   '(;; --- AI ---------------------------------------------------------------
     ("C-c a a" mjb-ai-chat              "Claude chat")
-    ("C-c a s" mjb-ai-suggest           "Inline suggestion at point")
-    ("C-c a t" mjb-ai-toggle-completion "Toggle auto-suggestions")
+    ("C-c a s" mjb-ai-complete          "Inline suggestion at point")
+    ("C-c a RET" mjb-ai-accept          "Accept suggestion")
     ("C-c a ?" mjb-ai-status            "Which models / is a key present")
 
     ;; --- Code -------------------------------------------------------------
@@ -128,7 +123,7 @@
     ("C-c t w" visual-line-mode         "Visual line wrapping")
     ("C-c t s" flyspell-mode            "Spell checking")
     ("C-c t f" flymake-mode             "Syntax checking")
-    ("C-c t a" mjb-ai-toggle-completion "Auto AI suggestions")
+    ("C-c a d" mjb-ai-dismiss           "Dismiss suggestion")
 
     ;; --- Top level --------------------------------------------------------
     ("C-c l"   recenter-top-bottom      "Recenter (C-l alternative)")
@@ -155,7 +150,7 @@
   "Every global keybinding.  (KEY COMMAND DESCRIPTION).
 
 Deliberately NOT bound, and why:
-  M-y   stays `yank-pop'      -- minuet had it; core muscle memory (R-063)
+  M-y   stays `yank-pop'      -- the old config's minuet took it (R-063)
   M-l   stays `downcase-word' -- recenter is on C-c l instead
   M-0   stays `digit-argument'-- treemacs had it; tab-bar uses C-x t <n>
   C-.   C-;  C-=  C->  C-<  C-S-c  -- cannot be typed in this terminal (F-06)")
@@ -197,15 +192,6 @@ Deliberately NOT bound, and why:
   (keymap-set eglot-mode-map "C-c c i" #'eglot-find-implementation)
   (keymap-set eglot-mode-map "C-c c t" #'eglot-find-typeDefinition)
   (keymap-set eglot-mode-map "C-c c f" #'eglot-format-buffer))
-
-(with-eval-after-load 'minuet
-  ;; Only live while a suggestion is displayed, and all Meta-letter, which a
-  ;; terminal transmits.
-  (keymap-set minuet-active-mode-map "M-a" #'minuet-accept-suggestion-line)
-  (keymap-set minuet-active-mode-map "M-A" #'minuet-accept-suggestion)
-  (keymap-set minuet-active-mode-map "M-n" #'minuet-next-suggestion)
-  (keymap-set minuet-active-mode-map "M-p" #'minuet-previous-suggestion)
-  (keymap-set minuet-active-mode-map "M-e" #'minuet-dismiss-suggestion))
 
 (with-eval-after-load 'corfu
   (keymap-set corfu-map "TAB" #'corfu-next)

@@ -33,8 +33,10 @@
   '(vertico orderless marginalia consult corfu cape ; completion: wrap built-ins
     magit diff-hl                                   ; git: essential complexity
     markdown-mode csv-mode                          ; no built-in equivalent
-    vterm                                           ; compiled terminal emulator
-    gptel minuet)                                   ; AI
+    vterm)                                          ; compiled terminal emulator
+  ;; NOTE: no AI packages.  gptel (13,366 lines) and minuet (5,090 + dash
+  ;; 3,347 + plz 1,161) are replaced by lisp/mjb-ai.el, which talks to the
+  ;; Messages API directly over curl.
   "Every package this configuration installs.
 Anything not listed is a transitive dependency.  Adding an entry requires a
 comment saying what it does that a built-in cannot.  Note there is no theme

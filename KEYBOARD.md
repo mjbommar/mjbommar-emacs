@@ -35,9 +35,10 @@ or a function key, all of which a terminal can send.
 | Key | Command | Does |
 |---|---|---|
 | `C-c a a` | `mjb-ai-chat` | Claude chat |
-| `C-c a s` | `mjb-ai-suggest` | Inline suggestion at point |
-| `C-c a t` | `mjb-ai-toggle-completion` | Toggle auto-suggestions |
+| `C-c a s` | `mjb-ai-complete` | Inline suggestion at point |
+| `C-c a RET` | `mjb-ai-accept` | Accept suggestion |
 | `C-c a ?` | `mjb-ai-status` | Which models / is a key present |
+| `C-c a d` | `mjb-ai-dismiss` | Dismiss suggestion |
 
 ### Code
 
@@ -70,7 +71,6 @@ or a function key, all of which a terminal can send.
 | `C-c t w` | `visual-line-mode` | Visual line wrapping |
 | `C-c t s` | `flyspell-mode` | Spell checking |
 | `C-c t f` | `flymake-mode` | Syntax checking |
-| `C-c t a` | `mjb-ai-toggle-completion` | Auto AI suggestions |
 
 ### Motion
 
