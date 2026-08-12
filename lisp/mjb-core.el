@@ -214,7 +214,9 @@ On a GUI build this is `gui-select-text'; on emacs-nox it is nil.")
 ;; tmux sessions, so make the failure loud rather than a mysteriously flat theme.
 (defun mjb-check-color-depth ()
   "Warn if a terminal frame did not negotiate 24-bit colour."
-  (unless (display-graphic-p)
+  ;; `noninteractive' guard: in batch there is no terminal and
+  ;; `display-color-cells' reports 0, which is not a problem to report.
+  (unless (or noninteractive (display-graphic-p))
     (when (< (display-color-cells) 16777216)
       (message "mjb: terminal has %d colours, not 24-bit. \
 Export COLORTERM=truecolor (theme will look flat until you do)."
