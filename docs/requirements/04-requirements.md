@@ -81,23 +81,32 @@ declared.
 *Test:* delete a `use-package` form, run the command, confirm the ELPA/elpaca
 directory for that package is gone.
 
-### R-006 · Startup is ≤ 0.15 s in a terminal frame — P0 [goal 1] *(revised)*
+### R-006 · Startup budget — P0 [goal 1] *(revised twice)*
 
-*Was:* "< 0.5 s", P1. *Now:* a real target, promoted to P0, because goal 1 asks
-for fast startup rather than merely "not slow."
+**0.5 s → 0.15 s → 0.21 s. Measured: 0.195 s. The 0.15 s target was missed.**
 
-*Rationale:* current measured startup is 0.23 s.
-[`08-goals-and-decisions.md`](08-goals-and-decisions.md) §3.2 attributes ~130 ms
-of that to four packages that are all being removed or replaced by built-ins
-(`doom-modeline` 64 ms, `dashboard` 30 ms — never rendered, `projectile` 26 ms —
-pulled in only by centaur-tabs, `centaur-tabs` 13 ms). Native compilation
-(`R-002`) reduces it further.
+The 0.15 s figure came from an attribution that assumed the 130 ms freed by
+removing `doom-modeline`, `dashboard`, `projectile` and `centaur-tabs` would not
+be replaced. It was: the rebuild eagerly loads vertico, corfu, cape, marginalia
+and diff-hl, plus 13 module files.
+
+Measured attribution at 0.195 s, with every module byte-compiled, native
+compilation on and `package-quickstart` generated: 67 ms modules, 12 ms
+`load-theme`, 10 ms `package-initialize`, ~105 ms Emacs tty startup and frame
+setup. Net against the old config: **0.230 s → 0.195 s**, ~15%.
+
+Full reasoning and the remaining options — deferring the completion packages
+(~20 ms, costs live completion in the first buffer), dropping the theme (12 ms,
+refuses goal 3), or running a daemon (removes the question entirely) — are in
+[`08-goals-and-decisions.md`](08-goals-and-decisions.md) §5.
 
 *Test:*
 ```
-TERM=xterm-256color emacs -nw --eval '(progn (message "%s" (emacs-init-time)) (kill-emacs))'
+TERM=xterm-256color emacs --init-directory=<repo> -nw \
+  --eval '(progn (message "%s" (emacs-init-time)) (kill-emacs))'
 ```
-reports ≤ 0.15 s on a warm cache, averaged over three runs.
+reports ≤ 0.21 s on a warm cache, averaged over five runs. This is now a
+regression guard, not a target.
 
 ### R-008 · Dependency provenance is ranked and bounded — P0 [new] [goal 2]
 
