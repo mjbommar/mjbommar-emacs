@@ -1,23 +1,24 @@
 ;;; mjb-shell.el --- Terminals inside Emacs -*- lexical-binding: t -*-
 
 ;;; Commentary:
-;; vterm is the only good terminal emulator for Emacs, but it is a compiled C
-;; module and BUILDING IT REQUIRES libtool, which is not installed on this
-;; machine:
+;; vterm is the only good terminal emulator for Emacs.  It is a compiled C
+;; module, and building it needs cmake AND libtool.  Both are installed here
+;; now and the module is built and verified working (a shell in the vterm
+;; buffer evaluated `echo $((21*2))' and returned 42).
 ;;
-;;   CMake Error at CMakeLists.txt:75 (message):
-;;     libtool not found.  Please install libtool
+;; If it ever needs rebuilding -- a vterm upgrade, or a new machine:
 ;;
-;; To enable it:  sudo apt install libtool libtool-bin
-;; then:          M-x mjb-vterm-build
+;;   sudo apt install cmake libtool libtool-bin
+;;   M-x mjb-vterm-build
 ;;
-;; Note vterm's own elisp reports "Compilation of `emacs-libvterm' module
-;; succeeded" even when cmake failed, so the failure is quiet -- hence the
-;; explicit check here rather than trusting it.
+;; `mjb-vterm-build' checks for the prerequisites itself, and
+;; `mjb-vterm-available-p' checks for the built artifact rather than trusting
+;; vterm's own report.  That is deliberate: when libtool was missing, vterm's
+;; elisp still printed "Compilation of `emacs-libvterm' module succeeded" while
+;; cmake had actually failed, and `require' then died on a missing file.
 ;;
-;; Until then `mjb-terminal' falls back to `eshell', which is built in.  You
-;; also already have tmux, which is where terminals actually live on this
-;; machine, so this module is a convenience rather than load-bearing.
+;; `mjb-terminal' falls back to `eshell' if the module is ever unavailable, so
+;; the config never hard-fails on a machine that cannot build it.
 
 ;;; Code:
 

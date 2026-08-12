@@ -36,6 +36,13 @@
 (setq native-comp-async-report-warnings-errors 'silent
       native-comp-jit-compilation t)
 
+;; --- Editing this configuration ----------------------------------------------
+;; If a lisp/mjb-*.elc is stale, prefer the .el you just edited.  Without this,
+;; changing a module and restarting silently loads the OLD byte-compiled
+;; version until you remember to recompile -- a nasty footgun for a config
+;; whose whole point is that you keep editing it.
+(setq load-prefer-newer t)
+
 ;; --- Package paths -----------------------------------------------------------
 ;; These MUST be here, not in init.el.  Emacs activates packages -- and loads
 ;; the quickstart file -- between early-init.el and init.el, so anything set

@@ -302,5 +302,15 @@ Export COLORTERM=truecolor (theme will look flat until you do)."
                   gc-cons-percentage 0.1))
           80)
 
+(defun mjb-recompile (&optional force)
+  "Byte- and native-compile every module in lisp/.
+With FORCE, recompile even files whose .elc is current.  `load-prefer-newer'
+means you do not strictly need this after an edit -- Emacs will load your .el
+-- but compiling keeps startup at its measured cost."
+  (interactive "P")
+  (byte-recompile-directory (expand-file-name "lisp" user-emacs-directory)
+                            0 force)
+  (message "mjb: modules recompiled"))
+
 (provide 'mjb-core)
 ;;; mjb-core.el ends here
