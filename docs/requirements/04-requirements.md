@@ -180,9 +180,12 @@ so there is no author signature to check. Dropping vterm removed the last MELPA
 package and with it the need for the carve-out, so the policy now has no
 exception at all.
 
-MELPA stays in `package-archives` so its packages remain discoverable in
-`list-packages`; installing one fails loudly, and re-adding the exemption is a
-one-line reviewable diff rather than a silent default.
+MELPA is not listed in `package-archives` either. It publishes no signatures
+(`archive-contents.sig` is a 404), so under this policy every
+`package-refresh-contents` failed against it — visibly, on every refresh and on
+every fresh install. Keeping an archive that cannot be installed from is worse
+than removing it: it looks like a broken install. Re-adding it deliberately
+takes two reviewable lines (the archive and the exemption).
 
 Verification needs `gpg` on `PATH`; without it `package-check-signature`
 degrades silently, so the configuration says so at startup instead of appearing

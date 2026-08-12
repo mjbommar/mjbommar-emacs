@@ -159,11 +159,15 @@ empty. It briefly held `"melpa"` — which signs nothing, because it builds from
 upstream git on its own servers — but dropping vterm removed the last MELPA
 package and with it the need for the carve-out.
 
-MELPA stays listed in `package-archives` so its packages remain discoverable in
-`list-packages`. Installing one now fails loudly (`Unsigned file 'foo-1.0.tar'
-at https://melpa.org/packages/`), and taking it back requires a one-line,
-reviewable edit. `scripts/count-packages.el` fails if the check is weakened, if
-any exempt archive is added, or if any installed package turns up unsigned.
+MELPA is not listed at all. It publishes no signatures — its
+`archive-contents.sig` is a 404 — so under this policy every refresh failed
+against it with `Failed to download 'melpa' archive`, including on the first run
+of a new machine. An archive you have made unusable buys nothing and looks like
+a broken install. Taking a MELPA package deliberately means adding it back
+*and* exempting it: two reviewable lines, not a silent default.
+
+`scripts/count-packages.el` fails if the check is weakened, if any exempt
+archive is added, or if any installed package turns up unsigned.
 
 ```
 M-x mjb-check-signatures     ; reads the .signed files package.el wrote

@@ -34,11 +34,20 @@
 ;; they live here rather than in init.el alongside `package-initialize'.
 
 (setq package-archives
+      ;; Signed archives only.  MELPA is deliberately absent: it publishes no
+      ;; signatures at all (its archive-contents.sig is a 404), so under the
+      ;; policy below every `package-refresh-contents' failed against it with
+      ;; "Failed to download 'melpa' archive" -- on every refresh, including
+      ;; the first run on a new machine.  Listing an archive you have made
+      ;; unusable buys nothing and looks like a broken install.
+      ;;
+      ;; To take a MELPA package deliberately, add BOTH lines back:
+      ;;   (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+      ;;   (add-to-list 'package-unsigned-archives "melpa")
+      ;; Two lines, both reviewable, rather than a silent default.
       '(("gnu"    . "https://elpa.gnu.org/packages/")
-        ("nongnu" . "https://elpa.nongnu.org/nongnu/")
-        ("melpa"  . "https://melpa.org/packages/"))
-      ;; Prefer signed GNU/NonGNU ELPA over MELPA when a package is on both.
-      package-archive-priorities '(("gnu" . 3) ("nongnu" . 2) ("melpa" . 1))
+        ("nongnu" . "https://elpa.nongnu.org/nongnu/"))
+      package-archive-priorities '(("gnu" . 2) ("nongnu" . 1))
 
       ;; Require a valid OpenPGP signature, with NO exceptions.  The Emacs
       ;; default is `allow-unsigned', which checks a signature when one is
@@ -48,14 +57,8 @@
       ;; `package-unsigned-archives' was ("melpa") while vterm was installed,
       ;; because MELPA signs nothing: it builds from upstream git on its own
       ;; servers, so there is no author signature to publish.  Dropping vterm
-      ;; removed the last MELPA package, so the exception is now empty and all
-      ;; 16 installed packages are signed and were verified on install.
-      ;;
-      ;; MELPA stays in `package-archives' so its packages remain discoverable
-      ;; in `list-packages'.  Installing one now fails loudly --
-      ;;   Unsigned file 'foo-1.0.tar' at https://melpa.org/packages/
-      ;; -- and taking it requires adding "melpa" back to the list below, which
-      ;; is a one-line, reviewable diff rather than a silent default.
+      ;; removed the last MELPA package, so the exception is empty and all 16
+      ;; installed packages are signed and were verified on install.
       package-check-signature t
       package-unsigned-archives nil)
 
