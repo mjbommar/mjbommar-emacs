@@ -25,17 +25,36 @@ command it claims.
 
 ## Install
 
+New machine or server, one line:
+
 ```sh
-git clone https://github.com/mjbommar/mjbommar-emacs.git
-cd mjbommar-emacs
-./install.sh
+git clone https://github.com/mjbommar/mjbommar-emacs.git ~/src/mjbommar-emacs && ~/src/mjbommar-emacs/install.sh --yes
 ```
+
+Deliberately not `curl … | sh`: this clones first, so the code that is about to
+run on your machine is on disk and reviewable before it runs, and the same
+checkout is what you keep.
+
+That single command installs the 10 packages (verifying every signature),
+builds the tree-sitter grammars, verifies the whole configuration loads, and
+tells you which optional tools are missing. On a fresh Debian/Ubuntu box the
+only prerequisites are:
+
+```sh
+sudo apt install emacs-pgtk git gnupg build-essential
+```
+
+`gnupg` is required, not optional — package signatures are enforced and Emacs
+degrades silently without it, so `install.sh` refuses to run rather than
+pretend to verify.
 
 `install.sh` **symlinks** `~/.emacs.d` to the checkout, so editing a module here
 *is* editing your live configuration and `git status` shows your changes. An
 existing `~/.emacs.d` is **moved aside with a timestamp, never deleted**, and
 its `var/`, `etc/` and `eln-cache/` are carried forward. Running it twice is a
-no-op.
+no-op. `--dry-run` prints what it would do; `--target DIR` installs elsewhere.
+
+To update later: `git -C ~/src/mjbommar-emacs pull`.
 
 Try it without installing anything:
 
@@ -45,27 +64,36 @@ emacs --init-directory=$PWD -nw
 
 ### Prerequisites
 
-Emacs 30+ built with native compilation and tree-sitter. On Ubuntu:
+| | |
+|---|---|
+| **Required** | `emacs` 30+ (with native compilation and tree-sitter), `git`, `gnupg` |
+| **For grammars** | a C compiler (`build-essential`); without one, tree-sitter modes fall back and say so |
 
 ```sh
-sudo apt install emacs-pgtk        # terminal + GUI; emacs-nox has no GUI at all
+sudo apt install emacs-pgtk git gnupg build-essential
 ```
 
-Everything below is optional; the config degrades cleanly without each one and
-`install.sh` tells you which are missing.
+`emacs-pgtk` gives terminal *and* GUI; `emacs-nox` has no GUI at all.
+
+Everything below is optional. The configuration degrades cleanly without each
+one, and `install.sh` lists exactly which are missing on this machine.
 
 | Tool | Enables | Install |
 |---|---|---|
-| `latexmk`, texlive | LaTeX builds | `sudo apt install latexmk texlive` |
-| `ripgrep` | project search | `cargo install ripgrep` |
-| `ruff` | Python lint + format | `uv tool install ruff` |
+| `latexmk` + texlive | LaTeX builds | `sudo apt install latexmk texlive` |
 | `aspell` + `aspell-en` | spell checking | `sudo apt install aspell aspell-en` |
+| `ripgrep` | project search | `sudo apt install ripgrep` |
+| `uv` | Python environments | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| `ruff` | Python lint + format | `uv tool install ruff` |
+| `ty` | Python types + LSP | `uv tool install ty` |
+| `rust-analyzer`, `rustfmt` | Rust LSP + format | `rustup component add rust-analyzer rustfmt` |
+| `clangd` | C LSP | `sudo apt install clangd` |
 
 ### One-time setup
 
-```
-M-x mjb-install-treesit-grammars     # python, c, bash, json, yaml, toml, markdown
-```
+None — `install.sh` installs the tree-sitter grammars (python, rust, c, bash,
+json, yaml, toml, markdown). `M-x mjb-install-treesit-grammars` re-runs it if a
+grammar is added or a build failed.
 
 ## AI: multi-provider, no packages
 

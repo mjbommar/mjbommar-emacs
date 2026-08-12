@@ -51,6 +51,13 @@ run()  { if [ "$DRY_RUN" -eq 1 ]; then say "  would: $*"; else "$@"; fi; }
 # --- sanity ------------------------------------------------------------------
 [ -f "$REPO/init.el" ] || { echo "no init.el in $REPO -- is this the repo?" >&2; exit 1; }
 command -v emacs >/dev/null || { echo "emacs not found on PATH" >&2; exit 1; }
+command -v git   >/dev/null || { echo "git not found on PATH" >&2; exit 1; }
+# Signature verification is enforced (R-009) and needs gpg.  Without it
+# package.el degrades silently, so fail loudly here instead.
+command -v gpg   >/dev/null || {
+  echo "gpg not found on PATH -- package signatures could not be verified." >&2
+  echo "  Debian/Ubuntu: sudo apt install gnupg" >&2
+  exit 1; }
 
 EMACS_VER="$(emacs --version | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1)"
 case "$EMACS_VER" in
@@ -101,29 +108,83 @@ run ln -s "$REPO" "$TARGET"
 say "Linked $TARGET -> $REPO"
 
 # --- packages ----------------------------------------------------------------
+# Bootstrap WITHOUT loading init.el.  init.el requires mjb-completion, which
+# requires vertico -- so on a machine that does not have the packages yet,
+# loading init first fails before it can install anything.  This is only
+# invisible on a machine where elpa/ already exists.  mjb-package.el depends on
+# nothing but `package' and `seq', so it can be loaded on its own.
 say
 say "Installing packages (first run downloads; later runs are a no-op)..."
 if [ "$DRY_RUN" -eq 0 ]; then
-  emacs --batch \
-    --eval "(setq user-emacs-directory \"$REPO/\")" \
-    -l "$REPO/early-init.el" -l "$REPO/init.el" \
-    --eval '(mjb-install-packages)' 2>&1 | tail -1
+  if ! emacs --batch \
+      --eval "(setq user-emacs-directory \"$REPO/\")" \
+      -l "$REPO/early-init.el" \
+      --eval "(progn (add-to-list 'load-path \"$REPO/lisp\")
+                     (require 'package) (package-initialize)
+                     (require 'mjb-package) (mjb-install-packages))" 2>&1 \
+      | grep -vE '^Loading|site-start|void: flavor' | sed 's/^/  /'; then
+    echo "package installation failed -- see the output above" >&2
+    exit 1
+  fi
+
+  # Now that the packages exist, the full configuration must load cleanly.
+  say
+  say "Verifying the full configuration loads..."
+  if emacs --batch \
+      --eval "(setq user-emacs-directory \"$REPO/\")" \
+      -l "$REPO/early-init.el" -l "$REPO/init.el" \
+      --eval '(message "mjb: configuration loaded")' 2>&1 \
+      | grep -qE 'configuration loaded'; then
+    say "  ok"
+  else
+    echo "the configuration did not load cleanly -- run ./scripts/smoke.sh" >&2
+    exit 1
+  fi
+fi
+
+# --- tree-sitter grammars ----------------------------------------------------
+# Best-effort: needs git and a C compiler.  A failure here is not fatal -- the
+# affected modes fall back (prog-mode for Rust, c-mode for C) and the message
+# names the fix.
+say
+if [ "$DRY_RUN" -eq 0 ]; then
+  if command -v cc >/dev/null || command -v gcc >/dev/null; then
+    say "Installing tree-sitter grammars..."
+    emacs --batch \
+      --eval "(setq user-emacs-directory \"$REPO/\")" \
+      -l "$REPO/early-init.el" -l "$REPO/init.el" \
+      --eval '(mjb-install-treesit-grammars)' 2>&1 \
+      | grep -E '^mjb:' | tail -1 || say "  grammars: some failed; M-x mjb-install-treesit-grammars to retry"
+  else
+    say "No C compiler: skipping tree-sitter grammars."
+    say "  sudo apt install build-essential, then M-x mjb-install-treesit-grammars"
+  fi
 fi
 
 # --- optional extras ---------------------------------------------------------
+# Kept in step with what the modules actually call.  Each is optional; the
+# config degrades rather than failing when one is missing.
 say
-say "Optional, and not installed automatically:"
-command -v rg       >/dev/null || say "  project search needs ripgrep:  cargo install ripgrep"
-command -v ruff     >/dev/null || say "  python lint/format needs ruff:  uv tool install ruff"
-command -v aspell   >/dev/null || say "  spell checking needs aspell:  sudo apt install aspell aspell-en"
-command -v latexmk  >/dev/null || say "  LaTeX builds need latexmk:  sudo apt install latexmk"
+missing=0
+opt() { command -v "$1" >/dev/null || { say "  $2"; missing=1; }; }
+say "Optional tools:"
+opt rg            "project search needs ripgrep:      sudo apt install ripgrep"
+opt uv            "python envs need uv:               curl -LsSf https://astral.sh/uv/install.sh | sh"
+opt ruff          "python lint/format needs ruff:     uv tool install ruff"
+opt ty            "python types need ty:              uv tool install ty"
+opt rust-analyzer "rust LSP needs rust-analyzer:      rustup component add rust-analyzer"
+opt rustfmt       "rust format needs rustfmt:         rustup component add rustfmt"
+opt clangd        "C LSP needs clangd:                sudo apt install clangd"
+opt aspell        "spell checking needs aspell:       sudo apt install aspell aspell-en"
+opt latexmk       "LaTeX builds need latexmk:         sudo apt install latexmk texlive"
+[ "$missing" -eq 0 ] && say "  all present."
 
 cat <<EOF
 
 Done.
 
   Config lives in : $REPO   (edit here; git status shows your changes)
-  Tree-sitter     : M-x mjb-install-treesit-grammars   (one time)
+  Update          : git -C $REPO pull
   API keys        : ~/.authinfo.gpg, e.g.
                       machine api.anthropic.com login apikey password sk-ant-...
                     Emacs never reads them from the environment.

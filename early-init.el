@@ -54,6 +54,14 @@
       package-quickstart t
       package-native-compile t)
 
+;; var/ is gitignored, so it does not exist in a fresh clone -- and package.el
+;; does not create the directory its quickstart file lives in.  Installing a
+;; package on a new machine therefore died in `package-quickstart-refresh' with
+;; "Opening output file: No such file or directory", AFTER downloading and
+;; verifying everything.  mjb-core.el creates the state directories, but that
+;; runs from init.el, which is far too late for this.
+(make-directory (file-name-directory package-quickstart-file) t)
+
 ;; --- Frame -------------------------------------------------------------------
 ;; Set these before the first frame is created so there is no flash-and-resize.
 ;; They are harmless on a tty build (emacs-nox ignores them).
