@@ -36,6 +36,17 @@
 (setq native-comp-async-report-warnings-errors 'silent
       native-comp-jit-compilation t)
 
+;; --- Package paths -----------------------------------------------------------
+;; These MUST be here, not in init.el.  Emacs activates packages -- and loads
+;; the quickstart file -- between early-init.el and init.el, so anything set
+;; later is too late to be used for this startup.  Their defaults are also
+;; computed at defcustom time, which silently pointed them at ~/.emacs.d.
+(setq package-user-dir (expand-file-name "elpa" user-emacs-directory)
+      package-quickstart-file
+      (expand-file-name "var/package-quickstart.el" user-emacs-directory)
+      package-quickstart t
+      package-native-compile t)
+
 ;; --- Frame -------------------------------------------------------------------
 ;; Set these before the first frame is created so there is no flash-and-resize.
 ;; They are harmless on a tty build (emacs-nox ignores them).

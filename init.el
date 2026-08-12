@@ -9,28 +9,30 @@
 ;;   - Global keys live ONLY in mjb-keys.el, so collisions are a diff.
 ;;   - Nothing loads that cannot function in the current frame type.
 ;;
-;; Requirement refs: R-001 (<=80 lines), R-004/R-008 (packages), R-007 (clean load).
+;; Requirement refs: R-001 (<=80 lines), R-004/R-008 (packages), R-007.
 
 ;;; Code:
 
 (add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
 
 ;; --- Package system (R-008) --------------------------------------------------
-;; Built-in package.el, deliberately: elpaca and straight are each thousands of
-;; lines of external dependency whose job is managing dependencies, which does
-;; not pay at this scale.
+;; Built-in package.el deliberately: elpaca/straight are thousands of lines of
+;; dependency whose job is managing dependencies, which does not pay here.
+;;
+;; NOTE package-user-dir, package-quickstart-file, package-quickstart and
+;; package-native-compile live in early-init.el -- Emacs activates packages
+;; BETWEEN early-init and this file, so setting them here would be too late.
 (require 'package)
 (setq package-archives
       '(("gnu"    . "https://elpa.gnu.org/packages/")
         ("nongnu" . "https://elpa.nongnu.org/nongnu/")
         ("melpa"  . "https://melpa.org/packages/"))
       ;; Prefer signed GNU/NonGNU ELPA over MELPA when a package is on both.
-      package-archive-priorities '(("gnu" . 3) ("nongnu" . 2) ("melpa" . 1))
-      package-native-compile t
-      package-quickstart t)
+      package-archive-priorities '(("gnu" . 3) ("nongnu" . 2) ("melpa" . 1)))
+(package-initialize)
 
 (defvar mjb-packages
-  '(vertico orderless marginalia consult corfu cape ; completion: wrap built-in APIs
+  '(vertico orderless marginalia consult corfu cape ; completion: wrap built-ins
     magit diff-hl                                   ; git: essential complexity
     markdown-mode csv-mode                          ; no built-in equivalent
     vterm                                           ; compiled terminal emulator
@@ -54,8 +56,7 @@ contrast ratio, which is what terminal and GUI frames both need.")
 (setq package-selected-packages mjb-packages)
 
 ;; --- Modules -----------------------------------------------------------------
-;; Order matters: core before anything that depends on its paths, keys last so
-;; it can bind commands the other modules have defined.
+;; Order matters: core first, keys last (it binds the others' commands).
 (require 'mjb-core)                     ; defaults, files, safety, clipboard
 (require 'mjb-ui)                       ; theme, modeline, tabs, fonts
 (require 'mjb-completion)               ; minibuffer + in-buffer completion
@@ -71,7 +72,6 @@ contrast ratio, which is what terminal and GUI frames both need.")
 (require 'mjb-keys)                     ; THE keybinding table
 
 ;; --- custom.el ---------------------------------------------------------------
-;; Keep Customize's output out of this file.
 (setq custom-file (expand-file-name "etc/custom.el" user-emacs-directory))
 (when (file-exists-p custom-file) (load custom-file nil t))
 

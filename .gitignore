@@ -60,3 +60,4 @@ debug-*.el
 /eln-cache/
 elpa/
 tree-sitter/
+*.elc

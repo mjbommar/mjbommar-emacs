@@ -20,6 +20,16 @@
 
 (require 'mjb-core)
 
+(defvar consult-narrow-key)
+(defvar consult-line-start-from-top)
+(defvar consult-preview-partial-size)
+(defvar consult-preview-max-count)
+;; `consult-customize' is a MACRO; without consult at compile time the
+;; byte-compiler treats its command arguments as variable references.
+(eval-when-compile (require 'consult nil t))
+(declare-function consult-xref "consult")
+(declare-function consult--customize-put "consult")
+
 (defgroup mjb-completion nil "Completion." :group 'completion)
 
 ;;;; Minibuffer UI --------------------------------------------------------------
@@ -58,26 +68,26 @@
 
 ;;;; Search and navigation commands ---------------------------------------------
 
-(require 'consult)
+;; Every consult command is autoloaded, so requiring it here would cost ~13 ms
+;; of startup to gain nothing.  Only the xref hooks need to be set eagerly.
 (require 'xref)
-(setq ;; Use ripgrep (installed at ~/.cargo/bin/rg).
-      consult-narrow-key "<"
-      consult-line-start-from-top nil
-      ;; Preview only the head of a large file -- book PDFs, .bbl and build
-      ;; logs live next to the sources here.  (Named `consult-preview-max-size'
-      ;; in consult 1.x; this is the consult 3.x spelling.)
-      consult-preview-partial-size (* 1024 1024)
-      consult-preview-max-count 10
-      ;; `register-preview' and xref integration, per consult's own advice.
-      register-preview-delay 0.5
-      xref-show-xrefs-function #'consult-xref
-      xref-show-definitions-function #'consult-xref)
+(setq xref-show-xrefs-function #'consult-xref
+      xref-show-definitions-function #'consult-xref
+      register-preview-delay 0.5)
 
-;; Preview on an explicit key rather than on every candidate motion: previewing
-;; each line of a 3000-line main.tex as you move is measurable work.
-(consult-customize
- consult-line consult-ripgrep consult-grep consult-buffer
- :preview-key '(:debounce 0.3 any))
+(with-eval-after-load 'consult
+  (setq consult-narrow-key "<"
+        consult-line-start-from-top nil
+        ;; Preview only the head of a large file -- book PDFs, .bbl and build
+        ;; logs live next to the sources here.  (Named `consult-preview-max-size'
+        ;; in consult 1.x; this is the consult 3.x spelling.)
+        consult-preview-partial-size (* 1024 1024)
+        consult-preview-max-count 10)
+  ;; Preview on a debounce rather than on every candidate motion: previewing
+  ;; each line of a 3000-line main.tex as you move is measurable work.
+  (consult-customize
+   consult-line consult-ripgrep consult-grep consult-buffer
+   :preview-key '(:debounce 0.3 any)))
 
 ;;;; In-buffer completion -------------------------------------------------------
 
