@@ -68,14 +68,43 @@ Everything below is optional; the config degrades cleanly without each one and
 M-x mjb-install-treesit-grammars     # python, c, bash, json, yaml, toml, markdown
 ```
 
+## AI: multi-provider, no packages
+
+`lisp/mjb-ai.el` (~330 lines) replaces gptel + minuet while keeping the
+multi-provider support they had. Three wire formats cover essentially
+everything:
+
+| Wire | Endpoint | Providers |
+|---|---|---|
+| `anthropic` | `/v1/messages` | Claude |
+| `openai` | `/v1/chat/completions` | OpenAI, xAI, vLLM, Ollama, llama.cpp, LM Studio, TGI, OpenRouter, Together, … |
+| `gemini` | `:streamGenerateContent` | Google |
+
+Shipped and live-tested: `anthropic`, `openai`, `xai`, `gemini`, `ollama`.
+`C-c a m` switches provider and model; **model lists are fetched from each
+provider's `/models` endpoint**, so they never go stale.
+
+Add a vLLM box or any other OpenAI-compatible server:
+
+```elisp
+(mjb-ai-add-openai-compatible 'gpu-box
+  "http://gpu-box.local:8000/v1/chat/completions")          ; no auth
+(mjb-ai-add-openai-compatible 'lambda
+  "https://<your-endpoint>/v1/chat/completions" "LAMBDA_API_KEY")
+```
+
 ## Credentials
 
-Emacs reads API keys from `~/.authinfo.gpg` via `auth-source`. It never reads
-them from the process environment.
+`auth-source` (`~/.authinfo.gpg`) first, then the provider's environment
+variable — so your existing `*_API_KEY` exports keep working while you migrate.
 
 ```
 machine api.anthropic.com login apikey password sk-ant-...
+machine api.openai.com    login apikey password sk-proj-...
 ```
+
+`C-c a ?` shows every provider and whether its credential resolves from
+authinfo, env, or not at all.
 
 > **If you are migrating from the previous config:** it relied on
 > `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` and `GEMINI_API_KEY` being exported in

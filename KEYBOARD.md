@@ -37,7 +37,8 @@ or a function key, all of which a terminal can send.
 | `C-c a a` | `mjb-ai-chat` | Claude chat |
 | `C-c a s` | `mjb-ai-complete` | Inline suggestion at point |
 | `C-c a RET` | `mjb-ai-accept` | Accept suggestion |
-| `C-c a ?` | `mjb-ai-status` | Which models / is a key present |
+| `C-c a m` | `mjb-ai-select-model` | Switch provider / model |
+| `C-c a ?` | `mjb-ai-status` | Providers, models, credentials |
 | `C-c a d` | `mjb-ai-dismiss` | Dismiss suggestion |
 
 ### Code
@@ -126,4 +127,4 @@ These live in their own mode maps and cannot collide with the table above.
 
 ---
 
-40 global bindings, verified by `scripts/check-keys.el`.
+41 global bindings, verified by `scripts/check-keys.el`.
