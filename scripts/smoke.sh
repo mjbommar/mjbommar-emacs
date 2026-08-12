@@ -51,5 +51,28 @@ else
 fi
 
 echo
+echo "== package provenance (R-008) =="
+if emacs --batch \
+     --eval "(setq user-emacs-directory \"$REPO/\")" \
+     -l "$REPO/early-init.el" -l "$REPO/init.el" \
+     -l scripts/count-packages.el 2>&1 | grep -vE '^Loading|^Repeat mode|site-start|void: flavor' | sed 's/^/  /'; then
+  :
+else
+  fail=1
+fi
+
+echo
+echo "== generated docs are current (R-080) =="
+emacs --batch \
+  --eval "(setq user-emacs-directory \"$REPO/\")" \
+  -l "$REPO/early-init.el" -l "$REPO/init.el" \
+  -l scripts/gen-keyboard-doc.el >/dev/null 2>&1
+if git -C "$REPO" diff --quiet KEYBOARD.md 2>/dev/null; then
+  echo "  ok   KEYBOARD.md matches the key table"
+else
+  echo "  FAIL KEYBOARD.md is stale -- regenerate and commit"; fail=1
+fi
+
+echo
 [ "$fail" -eq 0 ] && echo "SMOKE: PASS" || echo "SMOKE: FAIL"
 exit "$fail"

@@ -55,23 +55,37 @@ be reachable in `*Async-native-compile-log*`.
 
 *Test:* the buffer exists after a package install and contains entries.
 
-### R-004 · The installed package set is declared, pinned, and reproducible — P0 [fix · F-13]
+### R-004 · The package set is declared, recorded, and drift is detectable — P0 [fix · F-13] *(revised — original was not achievable)*
 
-The exact package list and versions must be recorded in a file committed to the
-repository, and a documented command must reinstall precisely that set on a
-clean machine.
+**As originally written this requirement could not be met, and saying so is
+better than pretending.** It asked for a lockfile that reproduces exact
+versions. **MELPA serves only the latest build of each package and does not
+retain old versions**, so a lockfile recording `consult 3.7` cannot restore
+`consult 3.7` once 3.8 ships — the artifact no longer exists to fetch.
 
-*Rationale:* today the set is 85 packages at whatever version MELPA served on
-first install, with an empty `package-selected-packages`. There is no way to
-reproduce it or roll it back.
+Exact reproduction would require one of: vendoring the sources into the repo, a
+manager that clones git and checks out a revision (`straight`/`elpaca`), or
+restricting to GNU ELPA, which does keep old versions. Each was rejected under
+`R-008`/goal 2 — `elpaca` and `straight` are thousands of lines of external
+dependency whose job is managing dependencies.
 
-*Implementation note (not a requirement):* the two realistic options are
-`elpaca` (native lockfile support) or `straight.el` (`versions/default.el`).
-Plain `package.el` + `package-selected-packages` gives you the declaration but
-not the pinning. Choose one; the requirement is only that pinning exists.
+**What is required instead, and is implemented:**
 
-*Test:* on a scratch `HOME`, running the documented bootstrap produces a package
-set whose name+version list matches the committed lockfile exactly.
+1. The declared set lives in one place (`mjb-packages` in `lisp/mjb-package.el`).
+2. The exact installed set *and versions* are recorded in a committed
+   `package-lock.eld` (`M-x mjb-write-lockfile`).
+3. Drift from that record is detectable and loud (`M-x mjb-check-lockfile`),
+   reporting added, removed, and version-changed packages.
+4. The declared names reinstall on a clean machine (`M-x mjb-install-packages`),
+   at whatever versions the archives currently serve.
+
+This is **reproducible-by-name with detectable drift**, not byte-identical
+reproduction. The gap is documented in `lisp/mjb-package.el` so the next reader
+does not assume a guarantee that is not there.
+
+*Test:* `M-x mjb-check-lockfile` reports a match on a clean tree; after
+installing or removing any package it names the difference. Verified by
+injecting a fake entry — the drift report fired and named it.
 
 ### R-005 · Removing a package from the config removes it from disk — P1 [new]
 
@@ -687,8 +701,8 @@ scope and its keybinding prefix, if any.
 | R-001 | 0 | new | Modular config, `init.el` ≤ 80 lines |
 | R-002 | 0 | fix | Native compilation enabled |
 | R-003 | 0 | preserve | Compile warnings silent but reachable |
-| R-004 | 0 | fix | Pinned, reproducible package set |
-| R-005 | 1 | new | Removing a package removes it from disk |
+| R-004 | 0 | fix | Declared set + lockfile + drift detection *(revised — exact pinning is impossible on MELPA; see the entry)* |
+| R-005 | 1 | new | `M-x mjb-remove-unused-packages` (wraps `package-autoremove`) |
 | R-006 | 0 | goal 1 | Startup ≤ 0.21 s; measured 0.195 s *(revised twice — 0.15 s target missed, see doc 08)* |
 | R-007 | 0 | new | Zero load errors/warnings |
 | R-008 | 0 | goal 2 | Provenance ranked; ≤ 20 MELPA packages *(new)* |

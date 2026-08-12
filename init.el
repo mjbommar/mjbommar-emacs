@@ -31,29 +31,7 @@
       package-archive-priorities '(("gnu" . 3) ("nongnu" . 2) ("melpa" . 1)))
 (package-initialize)
 
-(defvar mjb-packages
-  '(vertico orderless marginalia consult corfu cape ; completion: wrap built-ins
-    magit diff-hl                                   ; git: essential complexity
-    markdown-mode csv-mode                          ; no built-in equivalent
-    vterm                                           ; compiled terminal emulator
-    gptel minuet)                                   ; AI
-  "Every package this configuration installs.
-Anything not listed is a transitive dependency.  Adding an entry requires a
-comment saying what it does that a built-in cannot.  Note there is no theme
-package: the Modus themes ship with Emacs 30 and are built to a measured
-contrast ratio, which is what terminal and GUI frames both need.")
-
-(defun mjb-install-packages ()
-  "Install any member of `mjb-packages' that is missing.  Idempotent (R-073)."
-  (interactive)
-  (let ((missing (seq-remove #'package-installed-p mjb-packages)))
-    (when missing
-      (unless package-archive-contents (package-refresh-contents))
-      (mapc #'package-install missing))
-    (message "mjb: %d packages, %d newly installed"
-             (length mjb-packages) (length missing))))
-
-(setq package-selected-packages mjb-packages)
+(require 'mjb-package)                   ; declared set, lockfile, pruning
 
 ;; --- Modules -----------------------------------------------------------------
 ;; Order matters: core first, keys last (it binds the others' commands).
