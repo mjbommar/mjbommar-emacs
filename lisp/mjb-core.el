@@ -312,5 +312,58 @@ means you do not strictly need this after an edit -- Emacs will load your .el
                             0 force)
   (message "mjb: modules recompiled"))
 
+
+;;;; Formatting, dispatched by mode ---------------------------------------------
+;; `C-c c f' used to call `mjb-python-format-buffer' directly, which meant the
+;; one "format buffer" key did nothing in every language but Python.  Modules
+;; register themselves here instead.
+
+(declare-function eglot-format-buffer "eglot")
+(declare-function eglot-managed-p "eglot")
+
+(defvar mjb-format-functions nil
+  "Alist of (MAJOR-MODE . FUNCTION) used by `mjb-format-buffer'.
+MAJOR-MODE is matched with `derived-mode-p', so registering a base mode
+covers its tree-sitter variant.")
+
+(defun mjb-format-buffer ()
+  "Format the current buffer using the formatter registered for its mode.
+Falls back to `eglot-format-buffer' when a language server is attached,
+and otherwise says which mode has no formatter rather than doing nothing."
+  (interactive)
+  (let ((fn (seq-some (lambda (cell)
+                        (and (derived-mode-p (car cell)) (cdr cell)))
+                      mjb-format-functions)))
+    (cond
+     (fn (funcall fn))
+     ((and (fboundp 'eglot-managed-p) (eglot-managed-p))
+      (call-interactively #'eglot-format-buffer))
+     (t (user-error "mjb: no formatter registered for %s" major-mode)))))
+
+(defun mjb-format-external (program args &rest _)
+  "Filter the buffer through PROGRAM with ARGS, replacing it only on success.
+
+Shared by the language modules.  Output is captured and the exit status
+checked before anything is written back, so a formatter that fails leaves
+your file untouched rather than emptying it, and `replace-buffer-contents'
+keeps point, markers and the undo history across the round trip."
+  (unless (executable-find program)
+    (user-error "mjb: %s is not installed" program))
+  (let ((out (generate-new-buffer (format " *mjb-%s*" program)))
+        (errfile (make-temp-file "mjb-fmt-err"))
+        (origin (point)))
+    (unwind-protect
+        (let ((status (apply #'call-process-region (point-min) (point-max)
+                             program nil (list out errfile) nil args)))
+          (if (and (eq status 0) (> (buffer-size out) 0))
+              (progn (replace-buffer-contents out)
+                     (goto-char (min origin (point-max))))
+            (message "mjb: %s failed -- buffer unchanged (%s)" program
+                     (string-trim
+                      (with-temp-buffer (insert-file-contents errfile)
+                                        (buffer-string))))))
+      (kill-buffer out)
+      (ignore-errors (delete-file errfile)))))
+
 (provide 'mjb-core)
 ;;; mjb-core.el ends here

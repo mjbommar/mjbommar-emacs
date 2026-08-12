@@ -19,7 +19,7 @@ Emacs 30 already ships `use-package`, `which-key`, `eglot`, `project`,
 `modus-themes` and more. Most of what a config used to install is now in the
 box.
 
-Everything is verifiable: `./scripts/smoke.sh` byte-compiles all 15 modules,
+Everything is verifiable: `./scripts/smoke.sh` byte-compiles all 16 modules,
 loads the whole configuration, and asserts every keybinding resolves to the
 command it claims.
 
@@ -180,7 +180,8 @@ lisp/
   mjb-project.el    project.el, ripgrep, dired sidebar
   mjb-prose.el      text/markdown, flyspell
   mjb-latex.el      tex-mode + reftex + latexmk -- no AUCTeX
-  mjb-python.el     ruff format + lint, optional eglot, .venv detection
+  mjb-python.el     ruff format + lint, optional eglot
+  mjb-rust.el       rust-ts-mode, rustfmt, cargo, rust-analyzer, .venv detection
   mjb-formats.el    json/toml/yaml/csv/org, tree-sitter grammars
   mjb-shell.el      eshell + ansi-term (built-in; no packages)
   mjb-ai.el         multi-provider chat + inline completion (no packages)
@@ -232,6 +233,47 @@ comes next".
 Nothing important is bound to `C-.` `C-;` `C-=` `C->` or Control-Shift-letter:
 those have no legacy terminal encoding and cannot be transmitted through tmux.
 
+## Languages
+
+75% of the work here is Markdown and LaTeX; the rest is Python, Rust and C.
+
+| | Mode | Lint | Format | LSP |
+|---|---|---|---|---|
+| LaTeX | `tex-mode` + reftex | — | — | `C-c C-c` builds with latexmk |
+| Markdown | `markdown-mode` | flyspell | — | — |
+| Python | `python-ts-mode` | ruff (flymake) | ruff, on save | if a server is installed |
+| Rust | `rust-ts-mode` | `cargo check` / `clippy` | rustfmt, on save | rust-analyzer |
+| C | `c-ts-mode` | — | — | clangd, if installed |
+
+**Rust was entirely unconfigured until 2026-08-12** — `.rs` files opened in
+`fundamental-mode`, with no highlighting, indentation or LSP, despite
+rust-analyzer, rustfmt and clippy all being installed. The cause is a
+chicken-and-egg in Emacs itself: `rust-ts-mode.el` ends with
+
+```elisp
+(if (treesit-ready-p 'rust)
+    (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-ts-mode)))
+```
+
+which only runs when that file is *loaded*, and nothing loads it, because the
+only thing that would is the entry it is trying to add. `lisp/mjb-rust.el` makes
+the association explicitly, guarded on the grammar so a machine without it falls
+back to `prog-mode` and says how to fix it.
+
+In Rust buffers: `C-c C-c` cargo check, `C-c C-l` clippy, `C-c C-t` test,
+`C-c C-k` any cargo subcommand. Errors are navigable because Emacs's built-in
+`rustc` compilation rule already matches rust's `--> src/main.rs:12:5`.
+
+`C-c c f` formats the buffer via whichever formatter the mode registered
+(`mjb-format-functions`) — ruff for Python, rustfmt for Rust — falling back to
+the language server when a mode has none. It used to call
+`mjb-python-format-buffer` directly, so the one "format" key did nothing in
+every language but Python.
+
+`C` works out of the box via `c-ts-mode`. Installing `clangd`
+(`sudo apt install clangd`) is all that's needed for LSP there; eglot already
+knows about it.
+
 ## LaTeX
 
 The largest feature, and it uses **no packages at all** — `tex-mode`, `reftex`,
@@ -273,7 +315,7 @@ The primary environment is `emacs -nw` inside tmux inside Ghostty.
 ./scripts/smoke.sh
 ```
 
-Checks that all 15 modules byte-compile with zero warnings, that the whole
+Checks that all 16 modules byte-compile with zero warnings, that the whole
 configuration loads with no errors, and that every declared keybinding resolves
 to the command it claims — including that `M-y` is still `yank-pop`.
 

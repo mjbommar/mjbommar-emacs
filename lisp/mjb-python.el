@@ -84,6 +84,8 @@ survive the round trip."
   (when (and mjb-python-format-on-save (derived-mode-p 'python-base-mode))
     (mjb-python-format-buffer)))
 
+(add-to-list 'mjb-format-functions '(python-base-mode . mjb-python-format-buffer))
+
 (add-hook 'before-save-hook #'mjb-python-maybe-format)
 
 ;;;; Interpreter and environments -----------------------------------------------

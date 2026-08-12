@@ -61,6 +61,29 @@
   (unless (keymapp got)
     (mjb-check--fail "C-c p -> %s, expected project-prefix-map" got)))
 
+
+;; 6. Minor-mode maps must not shadow the global table (F-03 / F-04 again).
+;;    A minor-mode map takes precedence over the global map, so a duplicate key
+;;    here does not collide loudly -- it silently changes what the key does, and
+;;    only while that mode is active.  Both instances found this way were in
+;;    eglot-mode-map, so they misfired only with a language server attached:
+;;    C-c c n became eglot-rename instead of flymake-goto-next-error, and
+;;    C-c c f became eglot-format-buffer, bypassing ruff and rustfmt.
+;;
+;;    `keymap-lookup' returns an integer when the sequence merely runs past a
+;;    prefix, so only real commands count.
+(dolist (spec '((eglot   . eglot-mode-map)
+                (corfu   . corfu-map)
+                (vertico . vertico-map)))
+  (when (require (car spec) nil t)
+    (let ((map (symbol-value (cdr spec))))
+      (dolist (e mjb-key-table)
+        (let ((hit (ignore-errors (keymap-lookup map (car e)))))
+          (when (and hit (not (numberp hit)) (commandp hit))
+            (mjb-check--fail
+             "%s shadows the global table: %s is %s globally but %s in %s"
+             (cdr spec) (car e) (nth 1 e) hit (cdr spec))))))))
+
 (princ (format "\n%d binding(s) checked, %d failure(s)\n"
                (+ (length mjb-key-table) 6 (length mjb-key-prefixes))
                mjb-check--failures))

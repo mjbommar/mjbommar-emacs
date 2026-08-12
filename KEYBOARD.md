@@ -49,7 +49,7 @@ or a function key, all of which a terminal can send.
 |---|---|---|
 | `C-c c d` | `xref-find-definitions` | Jump to definition |
 | `C-c c r` | `xref-find-references` | Find references |
-| `C-c c f` | `mjb-python-format-buffer` | Format buffer |
+| `C-c c f` | `mjb-format-buffer` | Format buffer |
 | `C-c c h` | `eldoc-doc-buffer` | Documentation at point |
 | `C-c c e` | `flymake-show-buffer-diagnostics` | Diagnostics |
 | `C-c c n` | `flymake-goto-next-error` | Next diagnostic |
@@ -128,6 +128,10 @@ These live in their own mode maps and cannot collide with the table above.
 | corfu | `TAB / S-TAB / RET` | next / previous / insert |
 | vertico | `C-j / C-k` | next / previous candidate |
 | eshell | `C-u C-c '` | ansi-term, for a real tty |
+| eglot | `C-c c R` | rename symbol |
+| eglot | `C-c c a` | code actions |
+| eglot | `C-c c i` | find implementation |
+| eglot | `C-c c t` | find type definition |
 
 ---
 

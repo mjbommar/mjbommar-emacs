@@ -69,6 +69,7 @@
     (yaml       . ("https://github.com/ikatyang/tree-sitter-yaml"))
     (toml       . ("https://github.com/tree-sitter/tree-sitter-toml"))
     (c          . ("https://github.com/tree-sitter/tree-sitter-c"))
+    (rust       . ("https://github.com/tree-sitter/tree-sitter-rust"))
     (bash       . ("https://github.com/tree-sitter/tree-sitter-bash"))
     (markdown   . ("https://github.com/tree-sitter-grammars/tree-sitter-markdown"
                    "split_parser" "tree-sitter-markdown/src")))

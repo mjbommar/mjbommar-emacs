@@ -46,7 +46,7 @@
 (declare-function mjb-ai-status "mjb-ai")
 (declare-function mjb-ai-select-model "mjb-ai")
 (declare-function mjb-ai-use-provider "mjb-ai")
-(declare-function mjb-python-format-buffer "mjb-python")
+(declare-function mjb-format-buffer "mjb-core")
 (declare-function mjb-install-treesit-grammars "mjb-formats")
 
 ;; Mode maps and commands from packages loaded on demand.  Declared so this
@@ -106,7 +106,7 @@
     ;; --- Code -------------------------------------------------------------
     ("C-c c d" xref-find-definitions    "Jump to definition")
     ("C-c c r" xref-find-references     "Find references")
-    ("C-c c f" mjb-python-format-buffer "Format buffer")
+    ("C-c c f" mjb-format-buffer         "Format buffer")
     ("C-c c h" eldoc-doc-buffer         "Documentation at point")
     ("C-c c e" flymake-show-buffer-diagnostics "Diagnostics")
     ("C-c c n" flymake-goto-next-error  "Next diagnostic")
@@ -191,12 +191,22 @@ Deliberately NOT bound, and why:
 ;; duplicate a global key.  This is exactly how F-03 happened.
 
 (with-eval-after-load 'eglot
-  ;; Reuse the same C-c c prefix rather than inventing a second one.
-  (keymap-set eglot-mode-map "C-c c n" #'eglot-rename)
+  ;; Reuse the same C-c c prefix rather than inventing a second one -- but a
+  ;; minor-mode map SHADOWS the global map, so these must not collide with
+  ;; `mjb-key-table'.  Two did, and both only misfired while a language server
+  ;; was attached, which is the hardest case to notice:
+  ;;
+  ;;   C-c c n  was eglot-rename, silently replacing flymake-goto-next-error
+  ;;            exactly where diagnostics matter most.  Rename moved to C-c c R.
+  ;;   C-c c f  was eglot-format-buffer, shadowing `mjb-format-buffer' and so
+  ;;            bypassing ruff and rustfmt.  Dropped: the dispatcher already
+  ;;            falls back to eglot when no formatter is registered.
+  ;;
+  ;; scripts/check-keys.el now asserts this, so it cannot recur.
+  (keymap-set eglot-mode-map "C-c c R" #'eglot-rename)
   (keymap-set eglot-mode-map "C-c c a" #'eglot-code-actions)
   (keymap-set eglot-mode-map "C-c c i" #'eglot-find-implementation)
-  (keymap-set eglot-mode-map "C-c c t" #'eglot-find-typeDefinition)
-  (keymap-set eglot-mode-map "C-c c f" #'eglot-format-buffer))
+  (keymap-set eglot-mode-map "C-c c t" #'eglot-find-typeDefinition))
 
 (with-eval-after-load 'corfu
   (keymap-set corfu-map "TAB" #'corfu-next)
@@ -233,7 +243,11 @@ Anything matching no group lands in \"Everything else\".")
     ("AI chat"     "C-c C-c / C-c C-k"   "send / cancel")
     ("corfu"       "TAB / S-TAB / RET"   "next / previous / insert")
     ("vertico"     "C-j / C-k"           "next / previous candidate")
-    ("eshell"      "C-u C-c '"           "ansi-term, for a real tty"))
+    ("eshell"      "C-u C-c '"           "ansi-term, for a real tty")
+    ("eglot"       "C-c c R"             "rename symbol")
+    ("eglot"       "C-c c a"             "code actions")
+    ("eglot"       "C-c c i"             "find implementation")
+    ("eglot"       "C-c c t"             "find type definition"))
   "Keys living in their own mode maps; they cannot collide with `mjb-key-table'.")
 
 (defconst mjb-keys-unbound
