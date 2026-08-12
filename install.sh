@@ -1,299 +1,132 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# install.sh -- link this repository as your Emacs configuration.
+#
+# Requirements this satisfies:
+#   R-070  the installed config is a git checkout, so edits show in git status
+#   R-071  never destructive: an existing ~/.emacs.d is MOVED, never deleted,
+#          and var/ etc/ eln-cache/ are carried across
+#   R-073  idempotent: running twice is a no-op and does not re-download
+#
+# The previous version of this script did `rm -rf "$HOME/.emacs.d"` and then
+# copied files in.  That deleted the 39 MB elpa tree on every run, and -- worse
+# for a configuration whose whole point is that you keep editing it -- meant
+# any edit made in ~/.emacs.d was invisible to git and destroyed by the next
+# install.  Neither happens now.
 
-# Emacs Configuration Installation Script
-# This script backs up your existing configuration and installs the new one
+set -euo pipefail
 
-set -e  # Exit on error
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TARGET="${EMACS_DIR:-$HOME/.emacs.d}"
+STAMP="$(date +%Y%m%d-%H%M%S)"
+DRY_RUN=0
+ASSUME_YES=0
 
-# Parse command line arguments
-SKIP_PROMPTS=false
-for arg in "$@"; do
-    case $arg in
-        --yes|-y)
-            SKIP_PROMPTS=true
-            shift
-            ;;
-        --help|-h)
-            echo "Usage: $0 [OPTIONS]"
-            echo "Options:"
-            echo "  --yes, -y    Skip all prompts and proceed with installation"
-            echo "  --help, -h   Show this help message"
-            exit 0
-            ;;
-    esac
+usage() {
+  cat <<EOF
+Usage: $0 [--yes] [--dry-run] [--target DIR]
+
+  --yes        do not prompt
+  --dry-run    print what would happen and exit
+  --target DIR install somewhere other than ~/.emacs.d
+
+This creates a SYMLINK from \$TARGET to this repository, so that editing a
+module here is the same as editing your live configuration.
+EOF
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --yes|-y)   ASSUME_YES=1 ;;
+    --dry-run)  DRY_RUN=1 ;;
+    --target)   shift; TARGET="$1" ;;
+    --help|-h)  usage; exit 0 ;;
+    *) echo "unknown option: $1" >&2; usage; exit 2 ;;
+  esac
+  shift
 done
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+say()  { printf '%s\n' "$*"; }
+run()  { if [ "$DRY_RUN" -eq 1 ]; then say "  would: $*"; else "$@"; fi; }
 
-# Configuration paths
-EMACS_DIR="$HOME/.emacs.d"
-EMACS_FILE="$HOME/.emacs"
-BACKUP_ROOT="$HOME/.emacs.d.backups"
-TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-BACKUP_DIR="$BACKUP_ROOT/backup_$TIMESTAMP"
-REPO_URL="https://github.com/mjbommar/mjbommar-emacs.git"
-INSTALL_DIR="$HOME/mjbommar-emacs"
+# --- sanity ------------------------------------------------------------------
+[ -f "$REPO/init.el" ] || { echo "no init.el in $REPO -- is this the repo?" >&2; exit 1; }
+command -v emacs >/dev/null || { echo "emacs not found on PATH" >&2; exit 1; }
 
-# Detect if running from curl/pipe or local directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
-if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/init.el" ]; then
-    # Running locally from the repository
-    SOURCE_DIR="$SCRIPT_DIR"
-    RUNNING_FROM_CURL=false
-else
-    # Running from curl pipe
-    SOURCE_DIR="$INSTALL_DIR"
-    RUNNING_FROM_CURL=true
+EMACS_VER="$(emacs --version | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1)"
+case "$EMACS_VER" in
+  30.*|31.*|3[2-9].*) ;;
+  *) echo "warning: this config targets Emacs 30+; found $EMACS_VER" >&2 ;;
+esac
+
+say "repository: $REPO"
+say "target:     $TARGET"
+say "emacs:      $EMACS_VER"
+say
+
+# --- already installed? (R-073) ----------------------------------------------
+if [ -L "$TARGET" ] && [ "$(readlink -f "$TARGET")" = "$REPO" ]; then
+  say "Already linked to this repository. Nothing to do."
+  say "To update:  git -C \"$REPO\" pull"
+  exit 0
 fi
 
-echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}   Emacs Configuration Installer${NC}"
-echo -e "${BLUE}========================================${NC}"
-echo
+# --- move an existing config aside (R-071) -----------------------------------
+if [ -e "$TARGET" ] || [ -L "$TARGET" ]; then
+  BACKUP="${TARGET}.pre-mjb.${STAMP}"
+  say "An existing configuration is present at $TARGET."
+  say "It will be MOVED to:"
+  say "    $BACKUP"
+  say "Nothing is deleted. Your state (var/ etc/ eln-cache/) is copied forward."
+  say
+  if [ "$ASSUME_YES" -eq 0 ] && [ "$DRY_RUN" -eq 0 ]; then
+    read -r -p "Continue? [y/N] " reply
+    case "$reply" in [Yy]*) ;; *) echo "Aborted."; exit 1 ;; esac
+  fi
+  run mv "$TARGET" "$BACKUP"
 
-# Function to clone repository when running from curl
-clone_repository() {
-    echo -e "${YELLOW}Downloading mjbommar-emacs configuration...${NC}"
-    
-    # Check if git is installed
-    if ! command -v git &> /dev/null; then
-        echo -e "${RED}Error: git is not installed!${NC}"
-        echo "Please install git and try again."
-        exit 1
+  # Carry state forward so recentf/savehist/save-place survive (R-016).
+  for d in var etc eln-cache; do
+    if [ -d "$BACKUP/$d" ]; then
+      say "  carrying forward: $d"
+      run mkdir -p "$REPO/$d"
+      if [ "$DRY_RUN" -eq 0 ]; then
+        cp -an "$BACKUP/$d/." "$REPO/$d/" 2>/dev/null || true
+      fi
     fi
-    
-    # Use a temp directory for cloning
-    TEMP_DIR="$(mktemp -d)"
-    
-    # Clone the repository to temp directory
-    if git clone "$REPO_URL" "$TEMP_DIR/mjbommar-emacs"; then
-        echo -e "${GREEN}✓ Repository downloaded successfully${NC}"
-        SOURCE_DIR="$TEMP_DIR/mjbommar-emacs"
-    else
-        echo -e "${RED}Error: Failed to download repository${NC}"
-        rm -rf "$TEMP_DIR"
-        exit 1
-    fi
-}
-
-# Check if source directory is valid (only for local runs)
-if [ "$RUNNING_FROM_CURL" = false ] && [ ! -f "$SOURCE_DIR/init.el" ]; then
-    echo -e "${RED}Error: init.el not found in $SOURCE_DIR${NC}"
-    echo "Please run this script from the mjbommar-emacs directory"
-    exit 1
+  done
 fi
 
-# Function to create backup
-backup_existing() {
-    local backup_needed=false
-    
-    # Check if backup is needed
-    if [ -d "$EMACS_DIR" ] || [ -f "$EMACS_FILE" ]; then
-        backup_needed=true
-    fi
-    
-    if [ "$backup_needed" = false ]; then
-        echo -e "${GREEN}No existing configuration found. Skipping backup.${NC}"
-        return 0
-    fi
-    
-    echo -e "${YELLOW}Creating backup directory: $BACKUP_DIR${NC}"
-    mkdir -p "$BACKUP_DIR"
-    
-    # Backup .emacs.d directory
-    if [ -d "$EMACS_DIR" ]; then
-        echo -e "${YELLOW}Backing up $EMACS_DIR...${NC}"
-        cp -r "$EMACS_DIR" "$BACKUP_DIR/emacs.d"
-        echo -e "${GREEN}✓ Backed up .emacs.d${NC}"
-    fi
-    
-    # Backup .emacs file
-    if [ -f "$EMACS_FILE" ]; then
-        echo -e "${YELLOW}Backing up $EMACS_FILE...${NC}"
-        cp "$EMACS_FILE" "$BACKUP_DIR/emacs"
-        echo -e "${GREEN}✓ Backed up .emacs${NC}"
-    fi
-    
-    # Create a restore script
-    cat > "$BACKUP_DIR/restore.sh" << 'EOF'
-#!/bin/bash
-# Restore script for this backup
+# --- link --------------------------------------------------------------------
+run ln -s "$REPO" "$TARGET"
+say "Linked $TARGET -> $REPO"
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-
-echo "This will restore your Emacs configuration from this backup."
-echo "Current configuration will be overwritten!"
-read -p "Are you sure? (y/N) " -n 1 -r
-echo
-
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    # Remove current config
-    rm -rf "$HOME/.emacs.d"
-    rm -f "$HOME/.emacs"
-    
-    # Restore from backup
-    if [ -d "$SCRIPT_DIR/emacs.d" ]; then
-        cp -r "$SCRIPT_DIR/emacs.d" "$HOME/.emacs.d"
-        echo "Restored .emacs.d"
-    fi
-    
-    if [ -f "$SCRIPT_DIR/emacs" ]; then
-        cp "$SCRIPT_DIR/emacs" "$HOME/.emacs"
-        echo "Restored .emacs"
-    fi
-    
-    echo "Restoration complete!"
-else
-    echo "Restoration cancelled."
+# --- packages ----------------------------------------------------------------
+say
+say "Installing packages (first run downloads; later runs are a no-op)..."
+if [ "$DRY_RUN" -eq 0 ]; then
+  emacs --batch \
+    --eval "(setq user-emacs-directory \"$REPO/\")" \
+    -l "$REPO/early-init.el" -l "$REPO/init.el" \
+    --eval '(mjb-install-packages)' 2>&1 | tail -1
 fi
+
+# --- optional extras ---------------------------------------------------------
+say
+say "Optional, and not installed automatically:"
+command -v libtool  >/dev/null || say "  vterm needs libtool:  sudo apt install libtool libtool-bin"
+command -v rg       >/dev/null || say "  project search needs ripgrep:  cargo install ripgrep"
+command -v ruff     >/dev/null || say "  python lint/format needs ruff:  uv tool install ruff"
+command -v aspell   >/dev/null || say "  spell checking needs aspell:  sudo apt install aspell aspell-en"
+command -v latexmk  >/dev/null || say "  LaTeX builds need latexmk:  sudo apt install latexmk"
+
+cat <<EOF
+
+Done.
+
+  Config lives in : $REPO   (edit here; git status shows your changes)
+  Tree-sitter     : M-x mjb-install-treesit-grammars   (one time)
+  API keys        : ~/.authinfo.gpg, e.g.
+                      machine api.anthropic.com login apikey password sk-ant-...
+                    Emacs never reads them from the environment.
+  Verify          : ./scripts/smoke.sh
 EOF
-    chmod +x "$BACKUP_DIR/restore.sh"
-    
-    echo -e "${GREEN}✓ Backup complete at: $BACKUP_DIR${NC}"
-    echo -e "${BLUE}  (A restore script has been created in the backup directory)${NC}"
-}
-
-# Function to install new configuration
-install_config() {
-    echo
-    echo -e "${YELLOW}Installing new configuration...${NC}"
-    
-    # Remove old configuration
-    if [ -d "$EMACS_DIR" ]; then
-        echo -e "${YELLOW}Removing old .emacs.d...${NC}"
-        rm -rf "$EMACS_DIR"
-    fi
-    
-    if [ -f "$EMACS_FILE" ]; then
-        echo -e "${YELLOW}Removing old .emacs file...${NC}"
-        rm -f "$EMACS_FILE"
-    fi
-    
-    # Copy configuration files to ~/.emacs.d
-    echo -e "${YELLOW}Copying configuration to $EMACS_DIR...${NC}"
-    mkdir -p "$EMACS_DIR"
-    
-    # Copy all files from source to destination
-    cp -r "$SOURCE_DIR/"* "$EMACS_DIR/" 2>/dev/null || true
-    cp -r "$SOURCE_DIR/".* "$EMACS_DIR/" 2>/dev/null || true
-    
-    # Remove .git directory if it was copied
-    rm -rf "$EMACS_DIR/.git"
-    
-    echo -e "${GREEN}✓ Configuration installed to: $EMACS_DIR${NC}"
-}
-
-# Function to verify installation
-verify_installation() {
-    echo
-    echo -e "${YELLOW}Verifying installation...${NC}"
-    
-    if [ -d "$EMACS_DIR" ]; then
-        echo -e "${GREEN}✓ Configuration directory created successfully${NC}"
-        
-        if [ -f "$EMACS_DIR/init.el" ]; then
-            echo -e "${GREEN}✓ init.el is accessible${NC}"
-        else
-            echo -e "${RED}✗ init.el not found!${NC}"
-            return 1
-        fi
-        
-        if [ -f "$EMACS_DIR/early-init.el" ]; then
-            echo -e "${GREEN}✓ early-init.el is accessible${NC}"
-        fi
-    else
-        echo -e "${RED}✗ Installation verification failed!${NC}"
-        return 1
-    fi
-    
-    return 0
-}
-
-# Function to show post-installation instructions
-show_instructions() {
-    echo
-    echo -e "${BLUE}========================================${NC}"
-    echo -e "${GREEN}Installation Complete!${NC}"
-    echo -e "${BLUE}========================================${NC}"
-    echo
-    echo -e "${YELLOW}Next steps:${NC}"
-    echo "1. Start Emacs - packages will auto-install on first run"
-    echo "2. The first startup may take a few minutes to download packages"
-    echo "3. If prompted about installing packages, answer 'y' (yes)"
-    echo
-    echo -e "${YELLOW}Important files:${NC}"
-    echo "• Configuration: $EMACS_DIR/init.el"
-    echo "• Keyboard shortcuts: $EMACS_DIR/KEYBOARD.md"
-    echo "• README: $EMACS_DIR/README.md"
-    echo
-    echo -e "${YELLOW}Set up API keys (for AI features):${NC}"
-    echo "Add to your ~/.bashrc or ~/.zshrc:"
-    echo "  export OPENAI_API_KEY='your-key-here'"
-    echo
-    if [ -d "$BACKUP_DIR" ]; then
-        echo -e "${YELLOW}Your old configuration was backed up to:${NC}"
-        echo "  $BACKUP_DIR"
-        echo "  Run $BACKUP_DIR/restore.sh to restore it"
-    fi
-    echo
-    echo -e "${GREEN}Enjoy your new Emacs configuration!${NC}"
-}
-
-# Main installation flow
-main() {
-    echo "This script will:"
-    if [ "$RUNNING_FROM_CURL" = true ]; then
-        echo "1. Download the mjbommar-emacs configuration"
-        echo "2. Back up your existing Emacs configuration (if any)"
-        echo "3. Install the configuration to ~/.emacs.d"
-    else
-        echo "1. Back up your existing Emacs configuration (if any)"
-        echo "2. Copy this configuration to ~/.emacs.d"
-    fi
-    echo
-    echo -e "${YELLOW}Target directory: $EMACS_DIR${NC}"
-    echo
-    
-    if [ "$SKIP_PROMPTS" = false ]; then
-        read -p "Do you want to continue? (y/N) " -n 1 -r
-        echo
-        
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo -e "${RED}Installation cancelled.${NC}"
-            exit 1
-        fi
-    else
-        echo -e "${GREEN}Auto-installing (--yes flag detected)...${NC}"
-    fi
-    
-    # Clone repository if running from curl
-    if [ "$RUNNING_FROM_CURL" = true ]; then
-        clone_repository
-    fi
-    
-    # Perform installation steps
-    backup_existing
-    install_config
-    
-    # Clean up temp directory if running from curl
-    if [ "$RUNNING_FROM_CURL" = true ] && [ -n "$TEMP_DIR" ]; then
-        rm -rf "$TEMP_DIR"
-    fi
-    
-    if verify_installation; then
-        show_instructions
-    else
-        echo -e "${RED}Installation failed! Please check the errors above.${NC}"
-        echo -e "${YELLOW}You can restore your backup by running:${NC}"
-        echo "  $BACKUP_DIR/restore.sh"
-        exit 1
-    fi
-}
-
-# Run main function
-main

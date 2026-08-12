@@ -1,228 +1,129 @@
-# Emacs Keyboard Shortcuts Reference
+# Keyboard reference
 
-A comprehensive guide to the most important keyboard shortcuts in our Emacs configuration.
+**This file is generated — do not edit it by hand.**
+It is produced from `mjb-key-table` in `lisp/mjb-keys.el` by
+`scripts/gen-keyboard-doc.el`, so it cannot drift from the code.
+Regenerate after changing a binding:
 
-## 🎯 Essential Commands
+```sh
+emacs --batch --eval "(setq user-emacs-directory \"$PWD/\")" \
+  -l early-init.el -l init.el -l scripts/gen-keyboard-doc.el
+```
 
-### File Operations
-- `C-x C-f` - Find/open file
-- `C-x C-s` - Save file
-- `C-x C-w` - Save as...
-- `C-x C-c` - Quit Emacs
-- `C-x k` - Kill buffer
+## Terminal constraint
 
-### Window Management
-- `C-x 2` - Split window horizontally
-- `C-x 3` - Split window vertically
-- `C-x 1` - Delete other windows
-- `C-x 0` - Delete current window
-- `C-x o` - Switch to other window
-- `M-0` - Focus Treemacs window
+Emacs runs in tmux inside Ghostty. Control combined with punctuation
+(`C-.` `C-;` `C-=` `C->` `C-:`) and Control-Shift-letter have **no legacy
+terminal encoding** and cannot be transmitted. Nothing important is bound
+to them. Every key below uses `C-c <letter>`, `C-x <letter>`, `M-<letter>`
+or a function key, all of which a terminal can send.
 
-### Buffer Navigation
-- `C-x b` - Switch buffer (enhanced with Consult)
-- `C-x 4 b` - Switch buffer in other window
-- `C-x C-b` - List buffers
-- `C-x ←/→` - Previous/next buffer
+## Prefixes
 
-### Tab Navigation (Centaur Tabs)
-- `C-c t t` - Create new empty tab
-- `C-c t p` - Previous tab
-- `C-c t n` - Next tab
-- `C-c t <` - Move current tab left
-- `C-c t >` - Move current tab right
-- `C-c t s` - Switch tab group
-- `C-c t g` - Choose tab group with Counsel
-- `C-c t k` - Kill/close current tab
-- `C-c t o` - Kill other tabs in group
-- `C-x C-f` - Open file (creates new tab)
+| Prefix | Owns |
+|---|---|
+| `C-c a` | ai |
+| `C-c c` | code |
+| `C-c s` | search |
+| `C-c t` | toggle |
+| `C-c p` | project (`project-prefix-map`) |
+| `C-x t` | tabs (Emacs's built-in `tab-prefix-map`) |
+| `C-x g` | magit |
 
-## 🚀 Navigation & Movement
+### AI
 
-### Quick Navigation
-- `C-:` - Jump to character (Avy)
-- `C-'` - Jump to 2 characters (Avy)
-- `M-g f` - Jump to line (Avy)
-- `M-g w` - Jump to word (Avy)
-- `M-g g` - Go to line number (Consult)
+| Key | Command | Does |
+|---|---|---|
+| `C-c a a` | `mjb-ai-chat` | Claude chat |
+| `C-c a s` | `mjb-ai-suggest` | Inline suggestion at point |
+| `C-c a t` | `mjb-ai-toggle-completion` | Toggle auto-suggestions |
+| `C-c a ?` | `mjb-ai-status` | Which models / is a key present |
+
+### Code
+
+| Key | Command | Does |
+|---|---|---|
+| `C-c c d` | `xref-find-definitions` | Jump to definition |
+| `C-c c r` | `xref-find-references` | Find references |
+| `C-c c f` | `mjb-python-format-buffer` | Format buffer |
+| `C-c c h` | `eldoc-doc-buffer` | Documentation at point |
+| `C-c c e` | `flymake-show-buffer-diagnostics` | Diagnostics |
+| `C-c c n` | `flymake-goto-next-error` | Next diagnostic |
+| `C-c c p` | `flymake-goto-prev-error` | Previous diagnostic |
 
 ### Search
-- `C-s` - Incremental search forward
-- `C-r` - Incremental search backward
-- `M-s l` - Search lines in buffer (Consult)
-- `M-s r` - Ripgrep search in project (Consult)
-- `M-s f` - Find files (Consult)
 
-## 💻 Code Navigation & LSP
+| Key | Command | Does |
+|---|---|---|
+| `C-c s s` | `consult-line` | Search this buffer |
+| `C-c s r` | `consult-ripgrep` | Ripgrep the project |
+| `C-c s i` | `consult-imenu` | Jump to a definition/section |
+| `C-c s o` | `consult-outline` | Jump by outline heading |
+| `C-c s f` | `consult-find` | Find a file by name |
 
-### Code Navigation Menu
-- `C-c c` - Open code navigation hydra menu
-  - `d` - Jump to definition
-  - `D` - Definition in other window
-  - `r` - Find references
-  - `i` - Find implementation
-  - `t` - Find type definition
-  - `n` - Rename symbol
-  - `a` - Code actions
-  - `f` - Format buffer
-  - `h` - Show documentation
-  - `s` - Search symbol in buffer
-  - `S` - Search in project
+### Toggles
 
-### Direct Navigation
-- `C-c d` - Jump to definition
-- `C-c r` - Find references
-- `C-c n` - Rename symbol
-- `C-c a` - Code actions
-- `C-c f` - Format buffer
-- `M-.` - Smart jump to definition
-- `M-,` - Jump back
-- `M-?` - Find references
+| Key | Command | Does |
+|---|---|---|
+| `C-c t t` | `mjb-toggle-theme` | Light / dark theme |
+| `C-c t l` | `display-line-numbers-mode` | Line numbers |
+| `C-c t w` | `visual-line-mode` | Visual line wrapping |
+| `C-c t s` | `flyspell-mode` | Spell checking |
+| `C-c t f` | `flymake-mode` | Syntax checking |
+| `C-c t a` | `mjb-ai-toggle-completion` | Auto AI suggestions |
 
-## 🤖 AI Features
+### Motion
 
-### GPTel (Chat Mode)
-- `C-c g` - Start new GPT chat
-- `C-c RET` - Send prompt to AI
-- `C-c C-RET` - Open GPTel menu
+| Key | Command | Does |
+|---|---|---|
+| `M-g g` | `consult-goto-line` | Go to line |
+| `M-g M-g` | `consult-goto-line` | Go to line |
+| `M-g j` | `mjb-jump` | Jump to visible text |
+| `M-s l` | `consult-line` | Search this buffer |
+| `M-s r` | `consult-ripgrep` | Ripgrep the project |
+| `M-/` | `hippie-expand` | Expand from context |
 
-### Minuet (Code Completion)
-- `M-i` - Show AI suggestion as ghost text
-- `M-y` - Complete with minibuffer (multiple suggestions)
-- `C-c M` - Configure AI provider
+### Everything else
 
-When suggestion is active:
-- `M-a` - Accept one line
-- `M-A` - Accept entire suggestion
-- `M-n` - Next suggestion
-- `M-p` - Previous suggestion
-- `M-e` - Dismiss suggestion
+| Key | Command | Does |
+|---|---|---|
+| `C-c e` | `mjb-sidebar-toggle` | Toggle file sidebar |
+| `C-c l` | `recenter-top-bottom` | Recenter (C-l alternative) |
+| `C-c v` | `mjb-expand-region` | Expand region |
+| `C-c V` | `mjb-contract-region` | Contract region |
+| `C-c y` | `consult-yank-pop` | Yank from kill ring |
+| `C-c g` | `magit-status` | Magit status |
+| `C-c '` | `mjb-terminal` | Terminal (vterm or eshell) |
+| `C-x g` | `magit-status` | Magit status |
+| `C-x b` | `consult-buffer` | Switch buffer |
+| `C-x 4 b` | `consult-buffer-other-window` | Switch buffer, other window |
+| `C-x p t` | `mjb-tab-for-project` | Open project in its own tab |
+| `C-?` | `mjb-undo-redo` | Redo |
 
-## ✏️ Editing
+## Deliberately NOT bound
 
-### Text Manipulation
-- `C-=` - Expand region selection
-- `C-w` - Cut (kill)
-- `M-w` - Copy
-- `C-y` - Paste (yank)
-- `M-y` - Cycle through kill ring
-- `C-/` - Undo
-- `C-?` - Redo (with undo-tree)
+| Key | Stays | Why |
+|---|---|---|
+| `M-y` | `yank-pop` | minuet had taken it; core muscle memory (R-063) |
+| `M-l` | `downcase-word` | recenter lives on `C-c l` instead |
+| `M-0` | `digit-argument` | treemacs had taken it; tabs use `C-x t <n>` |
+| `C-.` `C-;` `C-=` `C->` `C-<` `C-S-c` | unbound | cannot be typed in this terminal (F-06) |
 
-### Multiple Cursors
-- `C-S-c C-S-c` - Edit lines with multiple cursors
-- `C->` - Mark next like this
-- `C-<` - Mark previous like this
-- `C-c C-<` - Mark all like this
+## Mode-local keys
 
-### Completion
-- `TAB` - Complete at point / Next suggestion (Corfu)
-- `S-TAB` - Previous suggestion (Corfu)
-- `RET` - Accept completion
-- `C-c p p` - Trigger completion at point
+These live in their own mode maps and cannot collide with the table above.
 
-### Cape Completions
-- `C-c p d` - Complete with dabbrev
-- `C-c p f` - Complete file path
-- `C-c p k` - Complete keyword
-- `C-c p s` - Complete Elisp symbol
-- `C-c p l` - Complete entire line
-- `C-c p w` - Complete dictionary word
+| Mode | Key | Does |
+|---|---|---|
+| LaTeX | `C-c C-c` | build with latexmk |
+| LaTeX | `C-c C-v` | open the PDF |
+| LaTeX | `C-c C-k` | clean aux files |
+| LaTeX | `C-c C-t` | RefTeX table of contents |
+| LaTeX | `C-c (` `C-c )` `C-c [` | RefTeX label / ref / cite |
+| minuet (while a suggestion shows) | `M-a` `M-A` `M-n` `M-p` `M-e` | accept line / all / next / prev / dismiss |
+| corfu | `TAB` `S-TAB` `RET` | next / previous / insert |
+| vertico | `C-j` `C-k` | next / previous candidate |
 
-## 🎨 UI & Appearance
+---
 
-- `C-c T` - Toggle between dark/light theme (uppercase T)
-- `C-x C-+` - Increase font size (or `C-x C-=`)
-- `C-x C--` - Decrease font size
-- `C-x C-0` - Reset font size
-
-## 📁 File Management
-
-### Treemacs
-- `C-x t t` - Toggle Treemacs sidebar
-- `C-x t d` - Select directory in Treemacs
-- `C-x t B` - Bookmark in Treemacs
-- `C-x t 1` - Delete other windows (Treemacs focus)
-
-### Project Management
-- `C-c p f` - Find file in project
-- `C-c p p` - Switch project
-- `C-c p c` - Compile project
-- `C-c p s` - Search in project
-
-## 🔧 Version Control (Magit)
-
-- `C-x g` - Open Magit status
-- In Magit status:
-  - `s` - Stage file/hunk
-  - `u` - Unstage file/hunk
-  - `c c` - Commit
-  - `P p` - Push
-  - `F p` - Pull
-  - `b b` - Switch branch
-  - `l l` - View log
-
-## 🔍 Help & Discovery
-
-- `C-h f` - Describe function
-- `C-h v` - Describe variable
-- `C-h k` - Describe key
-- `C-h m` - Describe modes
-- `C-h B` - Show all keybindings (Embark)
-- `C-.` - Contextual actions (Embark)
-- `C-;` - Do what I mean (Embark)
-
-## 💡 Special Features
-
-### Snippets (YASnippet)
-- `TAB` - Expand snippet (after typing trigger)
-- `C-x C-n` - Next field in snippet
-- `C-x C-p` - Previous field in snippet
-
-### Terminal
-- `M-x vterm` - Open terminal emulator
-- `M-x eshell` - Open Eshell
-
-### Org Mode
-- `TAB` - Cycle visibility
-- `S-TAB` - Cycle entire buffer
-- `C-c C-t` - Cycle TODO states
-- `C-c C-c` - Execute code block / Update
-
-## 🎮 Pro Tips
-
-1. **Which-key**: Hold any prefix key (like `C-x` or `C-c`) for 0.5 seconds to see available commands
-2. **Hydra**: Use `C-c c` to open the code navigation menu with visual hints
-3. **Consult**: Most search commands support preview - navigate results with `C-n/C-p` to preview
-4. **Embark**: Press `C-.` on any item (file, buffer, symbol) for contextual actions
-5. **Corfu**: Auto-completion appears automatically after typing 2+ characters
-6. **Minuet**: Auto-suggestions appear after 0.5 seconds of idle time in programming modes
-
-## 📝 Mode-Specific
-
-### Python
-- `C-c C-p` - Start Python REPL
-- `C-c C-c` - Send buffer to REPL
-- `C-c C-r` - Send region to REPL
-
-### Rust
-- `C-c C-c C-r` - cargo run
-- `C-c C-c C-b` - cargo build
-- `C-c C-c C-t` - cargo test
-
-### Markdown
-- `C-c C-c p` - Preview markdown
-- `C-c C-c l` - Insert link
-- `C-c C-c i` - Insert image
-
-## 🔄 Customization
-
-To add your own keybindings, add to init.el:
-```elisp
-(global-set-key (kbd "YOUR-KEY") 'your-command)
-```
-
-Or for mode-specific bindings:
-```elisp
-(define-key python-mode-map (kbd "YOUR-KEY") 'your-command)
-```
+40 global bindings, verified by `scripts/check-keys.el`.
