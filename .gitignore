@@ -54,3 +54,7 @@ debug-*.el
 /tmp/
 *.tmp
 *.temp
+# Rebuild: generated state
+/var/
+/etc/
+/eln-cache/

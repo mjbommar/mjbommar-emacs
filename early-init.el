@@ -1,49 +1,74 @@
-;;; early-init.el --- Early initialization -*- lexical-binding: t -*-
+;;; early-init.el --- Pre-GUI, pre-package startup -*- lexical-binding: t -*-
 
-;; Optimize startup by preventing unnecessary work
+;;; Commentary:
+;; Runs before the package system and before the first frame exists.
+;; Only put things here that MUST happen that early: GC tuning, frame
+;; parameters (to avoid a visible resize), and native-compilation policy.
+;;
+;; Requirement refs: R-002 (native comp), R-006 (startup budget).
+
+;;; Code:
+
+;; --- Startup GC -------------------------------------------------------------
+;; Raise the GC threshold for the duration of startup, then hand off to
+;; `mjb-core' which installs the steady-state values.  Without this, Emacs
+;; garbage-collects several times while loading init, which is pure waste.
 (setq gc-cons-threshold most-positive-fixnum
       gc-cons-percentage 0.6)
 
-;; Defer file-name-handler-alist for faster startup
-(defvar default-file-name-handler-alist file-name-handler-alist)
+;; `file-name-handler-alist' is consulted for every `load' and `require'.
+;; Nothing during startup needs TRAMP or archive handlers, so switch it off
+;; and restore it once we are up.
+(defvar mjb--file-name-handler-alist file-name-handler-alist)
 (setq file-name-handler-alist nil)
+
 (add-hook 'emacs-startup-hook
-          (lambda () (setq file-name-handler-alist default-file-name-handler-alist)))
+          (lambda ()
+            (setq file-name-handler-alist mjb--file-name-handler-alist))
+          ;; Depth 90: run late, after other startup hooks.
+          90)
 
-;; Prevent package.el loading packages prior to init.el
-(setq package-enable-at-startup nil)
+;; --- Native compilation (R-002) ---------------------------------------------
+;; The previous config set `native-comp-deferred-compilation', which was
+;; renamed in Emacs 29.1.  It is an obsolete *alias*, so assigning nil to it
+;; silently disabled JIT native compilation entirely -- 0 .eln files were
+;; produced for 85 installed packages.  Leave JIT enabled; just keep it quiet.
+(setq native-comp-async-report-warnings-errors 'silent
+      native-comp-jit-compilation t)
 
-;; Disable unnecessary UI elements early
+;; --- Frame -------------------------------------------------------------------
+;; Set these before the first frame is created so there is no flash-and-resize.
+;; They are harmless on a tty build (emacs-nox ignores them).
+(setq default-frame-alist
+      '((menu-bar-lines . 0)
+        (tool-bar-lines . 0)
+        (vertical-scroll-bars)
+        (horizontal-scroll-bars)
+        (width . 120)
+        (height . 40)))
+
+(setq frame-inhibit-implied-resize t
+      frame-resize-pixelwise t)
+
+;; --- Startup screen ----------------------------------------------------------
+;; Emacs is launched as `emacs <file>' here, which already suppresses the
+;; splash; these make `emacs' with no argument behave the same way.
+;; Note: `inhibit-startup-echo-area-message' only works when set to the literal
+;; username string -- setting it to t (as the old config did) is a no-op.
 (setq inhibit-startup-screen t
       inhibit-startup-message t
-      inhibit-startup-echo-area-message t
-      initial-scratch-message nil)
+      inhibit-startup-echo-area-message (user-login-name)
+      initial-scratch-message nil
+      initial-major-mode 'fundamental-mode)
 
-;; Disable UI elements before they're loaded
-(push '(menu-bar-lines . 0) default-frame-alist)
-(push '(tool-bar-lines . 0) default-frame-alist)
-(push '(vertical-scroll-bars) default-frame-alist)
-(push '(horizontal-scroll-bars) default-frame-alist)
-
-;; Set frame size and position
-(push '(width . 120) default-frame-alist)
-(push '(height . 40) default-frame-alist)
-
-;; Prevent unwanted runtime compilation for native-comp
-(setq native-comp-deferred-compilation nil
-      native-comp-async-report-warnings-errors 'silent)
-
-;; Prevent frame resizing on font change
-(setq frame-inhibit-implied-resize t)
-
-;; Faster rendering
-(setq-default bidi-display-reordering 'left-to-right
-              bidi-paragraph-direction 'left-to-right)
-(setq bidi-inhibit-bpa t)
-
-;; Reduce rendering workload
+;; --- Redisplay ---------------------------------------------------------------
 (setq fast-but-imprecise-scrolling t
-      redisplay-skip-fontification-on-input t)
+      redisplay-skip-fontification-on-input t
+      ;; Do not reorder bidirectional text we will never have.  Note we set
+      ;; `bidi-paragraph-direction', NOT `bidi-display-reordering' -- the
+      ;; latter is documented as "do not set this".
+      bidi-inhibit-bpa t)
+(setq-default bidi-paragraph-direction 'left-to-right)
 
 (provide 'early-init)
 ;;; early-init.el ends here
