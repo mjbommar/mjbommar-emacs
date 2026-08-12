@@ -95,7 +95,7 @@ or a function key, all of which a terminal can send.
 | `C-c V` | `mjb-contract-region` | Contract region |
 | `C-c y` | `consult-yank-pop` | Yank from kill ring |
 | `C-c g` | `magit-status` | Magit status |
-| `C-c '` | `mjb-terminal` | Terminal (vterm or eshell) |
+| `C-c '` | `mjb-terminal` | Terminal (eshell; C-u for ansi-term) |
 | `C-x g` | `magit-status` | Magit status |
 | `C-x b` | `consult-buffer` | Switch buffer |
 | `C-x 4 b` | `consult-buffer-other-window` | Switch buffer, other window |

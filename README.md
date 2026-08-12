@@ -3,7 +3,7 @@
 A terminal-first Emacs 30 configuration for writing books in LaTeX, with GUI
 support, built from Emacs built-ins wherever a built-in exists.
 
-**11 packages.** The previous version of this configuration had 85.
+**10 packages.** The previous version of this configuration had 85.
 
 ## Design
 
@@ -60,7 +60,6 @@ Everything below is optional; the config degrades cleanly without each one and
 | `ripgrep` | project search | `cargo install ripgrep` |
 | `ruff` | Python lint + format | `uv tool install ruff` |
 | `aspell` + `aspell-en` | spell checking | `sudo apt install aspell aspell-en` |
-| `libtool`, `cmake` | vterm's C module | `sudo apt install libtool libtool-bin cmake` |
 
 ### One-time setup
 
@@ -126,14 +125,17 @@ Add a vLLM box or any other OpenAI-compatible server:
 verifies a signature when one is present and silently accepts the package when
 it is not, so an archive that stops signing downgrades you without a word.
 
-**16 of the 17 installed packages are signed** by the GNU/NonGNU ELPA keys and
-were verified on install. The seventeenth is `vterm`, from MELPA, which signs
-nothing at all: it builds from upstream git on its own servers, so there is no
-author signature to publish. MELPA is therefore the single entry in
-`package-unsigned-archives`, which states where trust actually stops rather than
-opening a hole — and `scripts/count-packages.el` fails if a second archive is
-ever added, if the check is weakened, or if a package outside the documented
-exception turns up unsigned.
+**All 16 installed packages are signed** by the GNU/NonGNU ELPA keys and were
+verified on install. There is no exception: `package-unsigned-archives` is
+empty. It briefly held `"melpa"` — which signs nothing, because it builds from
+upstream git on its own servers — but dropping vterm removed the last MELPA
+package and with it the need for the carve-out.
+
+MELPA stays listed in `package-archives` so its packages remain discoverable in
+`list-packages`. Installing one now fails loudly (`Unsigned file 'foo-1.0.tar'
+at https://melpa.org/packages/`), and taking it back requires a one-line,
+reviewable edit. `scripts/count-packages.el` fails if the check is weakened, if
+any exempt archive is added, or if any installed package turns up unsigned.
 
 ```
 M-x mjb-check-signatures     ; reads the .signed files package.el wrote
@@ -180,7 +182,7 @@ lisp/
   mjb-latex.el      tex-mode + reftex + latexmk -- no AUCTeX
   mjb-python.el     ruff format + lint, optional eglot, .venv detection
   mjb-formats.el    json/toml/yaml/csv/org, tree-sitter grammars
-  mjb-shell.el      vterm, eshell
+  mjb-shell.el      eshell + ansi-term (built-in; no packages)
   mjb-ai.el         multi-provider chat + inline completion (no packages)
   mjb-keys.el       THE keybinding table
 scripts/

@@ -2,10 +2,10 @@
 ;; See lisp/mjb-package.el for what this can and cannot guarantee.
 ((generated . "2026-08-12") (emacs . "30.2")
  (declared vertico orderless marginalia consult corfu cape magit diff-hl
-           markdown-mode csv-mode vterm)
+           markdown-mode csv-mode)
  (installed (cape . "2.8") (compat . "31.0.0.2") (cond-let . "1.1.3")
             (consult . "3.7") (corfu . "2.12") (csv-mode . "1.27")
             (diff-hl . "1.10.0") (llama . "1.0.5") (magit . "4.7.0")
             (magit-section . "4.7.0") (marginalia . "2.11")
             (markdown-mode . "2.8") (orderless . "1.7") (transient . "0.13.7")
-            (vertico . "2.12") (vterm . "20260730.1414") (with-editor . "3.5.3")))
+            (vertico . "2.12") (with-editor . "3.5.3")))

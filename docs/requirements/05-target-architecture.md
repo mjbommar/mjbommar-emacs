@@ -22,7 +22,7 @@ mjbommar-emacs/
 │   ├── mjb-latex.el           the big new one — see R-050
 │   ├── mjb-python.el          ruff, flymake, optional eglot
 │   ├── mjb-formats.el         json / yaml / toml / csv / org
-│   ├── mjb-shell.el           vterm, eshell
+│   ├── mjb-shell.el           eshell + ansi-term (built-in)
 │   └── mjb-ai.el              gptel + minuet, model IDs at the top
 ├── etc/                       (generated, gitignored) no-littering config state
 ├── var/                       (generated, gitignored) no-littering data state

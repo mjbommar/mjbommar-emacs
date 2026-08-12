@@ -116,6 +116,57 @@ highlighting is available for free and is currently switched off by omission.
 Note that LaTeX has no tree-sitter mode in Emacs 30 — the largest workload is
 served by `font-lock` and AUCTeX regardless.
 
+### 3.6 vterm removed — measured, not assumed *(2026-08-12)*
+
+vterm was carried forward from the old configuration and kept as "the only good
+terminal emulator for Emacs." Both halves of that were tested before it went.
+
+**What it bought.** Consuming 300,000 lines of output:
+
+| | Time |
+|---|---|
+| `term.el` (built-in, 4,774 lines) | 3.88 s |
+| `vterm` (C module) | **1.69 s** |
+
+A 2.3× edge on bulk output, and that is the whole of it. `term.el` in Emacs 30
+handles 24-bit colour (`term--color-as-hex` is present), so the colour argument
+does not apply.
+
+**A premise that was wrong.** `mjb-shell.el` described eshell as the fallback.
+eshell is not a terminal emulator and never was — it is an elisp shell that
+hands full-screen programs to `term-mode` via `eshell-visual-commands` (`vi`,
+`tmux`, `top`, `htop`, `less` … by default). The real terminal emulator in both
+paths is, and always was, the built-in `term.el`.
+
+**What it cost.**
+
+- The configuration's only unsigned package (MELPA signs nothing).
+- Its only C module: 1,848 lines of hand-written C…
+- …plus **5,778 lines of libvterm downloaded at install time** from
+  `github.com/Sbozzolo/libvterm-mirror` — a personal mirror, not upstream —
+  because no system libvterm was present. Pinned by commit SHA, which is the
+  one mitigation.
+- Its only alpha-status dependency; upstream warns that bugs "can lead to
+  segmentation faults."
+- The `cmake` and `libtool` prerequisites.
+
+**Why removing beat rewriting.** A Rust rewrite is feasible — Emacs modules are
+a C ABI, the `emacs` crate wraps it, and `alacritty_terminal` is a maintained VT
+core. Measured, that swap costs **75 crates** (1.79 M vendored lines, 68% of it
+generated FFI bindings for architectures never compiled here) to replace 7,626
+lines of C, plus a native artifact to maintain forever — and cargo offers no
+signature check comparable to the one R-009 just turned on. Deleting removes the
+same C for free.
+
+**The deciding fact** is environmental: Emacs runs inside tmux inside Ghostty,
+so a real terminal is already one keystroke away. `02-usage-evidence.md` §7
+had already recorded terminal-from-Emacs as "plausible but unevidenced."
+2.3 s on a 300k-line dump did not justify any of the above.
+
+`mjb-terminal` now opens eshell, or `ansi-term` with a prefix argument. Both
+paths were tested end to end. Consequence: `package-unsigned-archives` is now
+empty and all 16 remaining packages are signed — see R-009.
+
 ## 4. Goal-to-requirement traceability
 
 | Goal | Requirements |

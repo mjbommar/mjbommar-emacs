@@ -40,19 +40,24 @@
       ;; Prefer signed GNU/NonGNU ELPA over MELPA when a package is on both.
       package-archive-priorities '(("gnu" . 3) ("nongnu" . 2) ("melpa" . 1))
 
-      ;; Require a valid OpenPGP signature.  The default is `allow-unsigned',
-      ;; which checks a signature when one is present and silently accepts the
-      ;; package when it is not -- so an archive that stops signing downgrades
-      ;; you without a word.
+      ;; Require a valid OpenPGP signature, with NO exceptions.  The Emacs
+      ;; default is `allow-unsigned', which checks a signature when one is
+      ;; present and silently accepts the package when it is not -- so an
+      ;; archive that stops signing downgrades you without a word.
       ;;
-      ;; MELPA signs nothing: it builds from upstream git on its own servers,
-      ;; so there is no author signature to publish.  Naming it below is an
-      ;; accurate statement of where trust stops rather than a loophole, and it
-      ;; is deliberately the ONLY entry, so a second unsigned archive would be
-      ;; a visible diff.  Exactly one installed package comes from MELPA
-      ;; (vterm); the other 16 are signed and were verified on install.
+      ;; `package-unsigned-archives' was ("melpa") while vterm was installed,
+      ;; because MELPA signs nothing: it builds from upstream git on its own
+      ;; servers, so there is no author signature to publish.  Dropping vterm
+      ;; removed the last MELPA package, so the exception is now empty and all
+      ;; 16 installed packages are signed and were verified on install.
+      ;;
+      ;; MELPA stays in `package-archives' so its packages remain discoverable
+      ;; in `list-packages'.  Installing one now fails loudly --
+      ;;   Unsigned file 'foo-1.0.tar' at https://melpa.org/packages/
+      ;; -- and taking it requires adding "melpa" back to the list below, which
+      ;; is a one-line, reviewable diff rather than a silent default.
       package-check-signature t
-      package-unsigned-archives '("melpa"))
+      package-unsigned-archives nil)
 
 ;; `package-refresh-contents' imports Emacs's own keyring into
 ;; `package-gnupghome-dir' by itself, but only when signature checking is on.
@@ -81,8 +86,7 @@ re-asserting policy."
 (defvar mjb-packages
   '(vertico orderless marginalia consult corfu cape ; completion: wrap built-ins
     magit diff-hl                                   ; git: essential complexity
-    markdown-mode csv-mode                          ; no built-in equivalent
-    vterm)                                          ; compiled terminal emulator
+    markdown-mode csv-mode)                         ; no built-in equivalent
   ;; NOTE: no AI packages.  gptel (13,366 lines) and minuet (5,090 + dash
   ;; 3,347 + plz 1,161) are replaced by lisp/mjb-ai.el, which talks to the
   ;; Messages API directly over curl.

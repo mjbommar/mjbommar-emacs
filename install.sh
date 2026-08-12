@@ -113,7 +113,6 @@ fi
 # --- optional extras ---------------------------------------------------------
 say
 say "Optional, and not installed automatically:"
-command -v libtool  >/dev/null || say "  vterm needs libtool:  sudo apt install libtool libtool-bin"
 command -v rg       >/dev/null || say "  project search needs ripgrep:  cargo install ripgrep"
 command -v ruff     >/dev/null || say "  python lint/format needs ruff:  uv tool install ruff"
 command -v aspell   >/dev/null || say "  spell checking needs aspell:  sudo apt install aspell aspell-en"

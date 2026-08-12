@@ -1,73 +1,42 @@
 ;;; mjb-shell.el --- Terminals inside Emacs -*- lexical-binding: t -*-
 
 ;;; Commentary:
-;; vterm is the only good terminal emulator for Emacs.  It is a compiled C
-;; module, and building it needs cmake AND libtool.  Both are installed here
-;; now and the module is built and verified working (a shell in the vterm
-;; buffer evaluated `echo $((21*2))' and returned 42).
+;; Two built-in terminals, no packages.
 ;;
-;; If it ever needs rebuilding -- a vterm upgrade, or a new machine:
+;; vterm was removed (2026-08-12).  What it bought was measured rather than
+;; assumed: consuming 300,000 lines of output took vterm 1.69 s against
+;; term.el's 3.88 s, a 2.3x edge and the whole of the difference -- term.el in
+;; Emacs 30 handles 24-bit colour too (`term--color-as-hex').  What it cost was
+;; the configuration's only unsigned package, its only C module, its only
+;; alpha-status dependency, and the cmake/libtool prerequisites; on top of that
+;; its CMakeLists downloaded libvterm's 5,778 lines of C from a personal GitHub
+;; mirror at install time because no system libvterm was present.  Emacs here
+;; runs inside tmux, where a real terminal is already one keystroke away, so
+;; 2.3 s on a 300k-line dump did not justify any of that.  See README.
 ;;
-;;   sudo apt install cmake libtool libtool-bin
-;;   M-x mjb-vterm-build
-;;
-;; `mjb-vterm-build' checks for the prerequisites itself, and
-;; `mjb-vterm-available-p' checks for the built artifact rather than trusting
-;; vterm's own report.  That is deliberate: when libtool was missing, vterm's
-;; elisp still printed "Compilation of `emacs-libvterm' module succeeded" while
-;; cmake had actually failed, and `require' then died on a missing file.
-;;
-;; `mjb-terminal' falls back to `eshell' if the module is ever unavailable, so
-;; the config never hard-fails on a machine that cannot build it.
+;; A correction to what this file used to claim: eshell is NOT a terminal
+;; emulator and was never the fallback it was described as.  It is an elisp
+;; shell that hands curses programs off to `term-mode' via
+;; `eshell-visual-commands' -- vi, vim, nvim, screen, tmux, top, htop, less,
+;; more, lynx, links, ncftp, ncmpcpp, mutt, pine, tin, trn, elm by default.  So
+;; the real terminal emulator in both paths below is the built-in term.el.
 
 ;;; Code:
 
 (require 'mjb-core)
 
-(defvar vterm-max-scrollback)
-(defvar vterm-shell)
-(defvar vterm-kill-buffer-on-exit)
-(defvar vterm-copy-exclude-prompt)
-(defvar vterm-timer-delay)
 (defvar eshell-scroll-to-bottom-on-input)
 (defvar eshell-hist-ignoredups)
 (defvar eshell-save-history-on-exit)
 (defvar eshell-history-size)
 (defvar eshell-error-if-no-glob)
 (defvar eshell-destroy-buffer-when-process-dies)
-(declare-function vterm "vterm" (&optional arg))
-(declare-function vterm-module-compile "vterm-module")
+(defvar eshell-visual-commands)
+(defvar term-buffer-maximum-size)
+(defvar term-scroll-to-bottom-on-output)
+(declare-function ansi-term "term" (program &optional new-buffer-name))
 
 (defgroup mjb-shell nil "Terminals." :group 'processes)
-
-;;;; vterm ----------------------------------------------------------------------
-
-(defun mjb-vterm-available-p ()
-  "Return non-nil if vterm's compiled module can actually be loaded."
-  (and (locate-library "vterm")
-       (or (featurep 'vterm-module)
-           (locate-library "vterm-module"))))
-
-(defun mjb-vterm-build ()
-  "Build vterm's C module, reporting the real prerequisite if it fails."
-  (interactive)
-  (unless (executable-find "cmake")
-    (user-error "mjb: cmake is required to build vterm"))
-  (unless (executable-find "libtool")
-    (user-error "mjb: libtool is required to build vterm.  \
-Run: sudo apt install libtool libtool-bin"))
-  (require 'vterm)
-  (vterm-module-compile)
-  (message "mjb: vterm module built; restart Emacs"))
-
-(with-eval-after-load 'vterm
-  (setq vterm-max-scrollback 10000
-        vterm-shell (or (executable-find "bash") shell-file-name)
-        vterm-kill-buffer-on-exit t
-        vterm-copy-exclude-prompt t
-        ;; Lower latency at a small CPU cost; this is a terminal, so latency
-        ;; is the whole point.
-        vterm-timer-delay 0.02))
 
 ;;;; eshell ---------------------------------------------------------------------
 
@@ -82,16 +51,31 @@ Run: sudo apt install libtool libtool-bin"))
 ;; `eshell-syntax-highlighting' is removed: no evidence of eshell use at all
 ;; (the history file was empty), and it is 400 lines to colourise a prompt.
 
+;;;; term -----------------------------------------------------------------------
+
+(with-eval-after-load 'term
+  (setq term-buffer-maximum-size 10000     ; matches the old vterm scrollback
+        term-scroll-to-bottom-on-output t))
+
+;; Programs that need a real tty, added to eshell's hand-off list.  Each one
+;; takes over the screen, which eshell cannot do and term.el can.
+(with-eval-after-load 'em-term
+  (dolist (cmd '("ssh" "htop" "btop" "ncdu" "fzf" "lazygit" "nvtop"))
+    (add-to-list 'eshell-visual-commands cmd)))
+
 ;;;; One entry point ------------------------------------------------------------
 
 (defun mjb-terminal (&optional arg)
-  "Open a terminal: vterm when its module is built, otherwise eshell.
-With prefix ARG, force eshell."
+  "Open `eshell'.  With prefix ARG, open a real tty via `ansi-term'.
+
+eshell is the better default here: it is an elisp shell, so it reaches
+Emacs functions, dired buffers and remote TRAMP paths directly, and it
+delegates full-screen programs to term.el on its own.  Reach for the
+prefix when you want a genuine tty for the whole session -- an
+interactive remote shell, or a program not in `eshell-visual-commands'."
   (interactive "P")
-  (if (and (not arg) (mjb-vterm-available-p))
-      (vterm)
-    (when (and (not arg) (locate-library "vterm"))
-      (message "mjb: vterm module not built (needs libtool); using eshell"))
+  (if arg
+      (ansi-term (or (executable-find "bash") shell-file-name))
     (eshell)))
 
 (provide 'mjb-shell)

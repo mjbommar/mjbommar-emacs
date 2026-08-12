@@ -174,11 +174,15 @@ which originate outside this repo. Byte-compiling every `lisp/*.el` produces no
 the package when it is not, so an archive that stops signing — or a fetch that
 is tampered with in a way that drops the `.sig` — downgrades you without a word.
 
-MELPA publishes no signatures at all: it builds from upstream git on its own
-servers, so there is no author signature to check. It is therefore listed in
-`package-unsigned-archives`, which is an accurate statement of where trust stops
-rather than a loophole. It must remain the **only** entry, so that adding a
-second unsigned archive shows up as a diff in review.
+`package-unsigned-archives` is **empty**. It briefly held `"melpa"`, which
+publishes no signatures at all — it builds from upstream git on its own servers,
+so there is no author signature to check. Dropping vterm removed the last MELPA
+package and with it the need for the carve-out, so the policy now has no
+exception at all.
+
+MELPA stays in `package-archives` so its packages remain discoverable in
+`list-packages`; installing one fails loudly, and re-adding the exemption is a
+one-line reviewable diff rather than a silent default.
 
 Verification needs `gpg` on `PATH`; without it `package-check-signature`
 degrades silently, so the configuration says so at startup instead of appearing
@@ -194,11 +198,13 @@ enforcement affordable now.
 
 *Test:* `M-x mjb-check-signatures` reads the `NAME-VERSION.signed` files that
 package.el writes on successful verification and reports the count — evidence,
-not a restatement of policy. Current: 16/17 signed, unsigned `(vterm)`.
-Enforcement is verified adversarially in a throwaway `package-user-dir`: a
-signed GNU ELPA package installs and gets a `.signed` file; the same MELPA
+not a restatement of policy. Current: **16/16 signed, no exceptions**.
+Enforcement was verified adversarially in a throwaway `package-user-dir`: a
+signed GNU ELPA package installs and gets a `.signed` file; an unsigned MELPA
 package is **refused** with `Unsigned file ... at https://melpa.org/packages/`
-when `package-unsigned-archives` is emptied, and installs when it is restored.
+when `package-unsigned-archives` is empty, and installs when the exemption is
+restored. `scripts/count-packages.el` additionally fails if the check is
+weakened or any exempt archive is added — both regressions were tested.
 
 ---
 
@@ -754,7 +760,7 @@ scope and its keybinding prefix, if any.
 | R-006 | 0 | goal 1 | Startup ≤ 0.21 s; measured **0.114 s** *(re-measured 2026-08-12; the 0.195 s reading timed stale `.elc`)* |
 | R-007 | 0 | new | Zero load errors/warnings |
 | R-008 | 0 | goal 2 | Provenance ranked; ≤ 20 MELPA packages *(new)* |
-| R-009 | 0 | goal 2 | Signatures enforced (`package-check-signature` = `t`); MELPA the sole named exception *(new)* |
+| R-009 | 0 | goal 2 | Signatures enforced (`package-check-signature` = `t`); **no exceptions**, 16/16 signed *(new)* |
 | R-010 | 0 | fix | Versioned backups, central directory |
 | R-011 | 0 | fix | Auto-save on |
 | R-012 | 1 | fix | Lock files on |
