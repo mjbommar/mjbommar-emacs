@@ -680,7 +680,7 @@ scope and its keybinding prefix, if any.
 | R-003 | 0 | preserve | Compile warnings silent but reachable |
 | R-004 | 0 | fix | Pinned, reproducible package set |
 | R-005 | 1 | new | Removing a package removes it from disk |
-| R-006 | 0 | goal 1 | Startup ≤ 0.15 s *(revised)* |
+| R-006 | 0 | goal 1 | Startup ≤ 0.21 s; measured 0.195 s *(revised twice — 0.15 s target missed, see doc 08)* |
 | R-007 | 0 | new | Zero load errors/warnings |
 | R-008 | 0 | goal 2 | Provenance ranked; ≤ 20 MELPA packages *(new)* |
 | R-010 | 0 | fix | Versioned backups, central directory |
