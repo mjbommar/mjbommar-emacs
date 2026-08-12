@@ -560,19 +560,42 @@ currently is not, weaker build integration). AUCTeX + RefTeX is the stronger fit
 for book-length multi-file projects, and `latexmk` is already installed. Either
 satisfies the table above; pick one.
 
-### R-051 · Python support matches the installed toolchain — P0 [fix · F-09]
+### R-051 · Python uses the Astral toolchain, and only it — P0 [fix · F-09] *(revised 2026-08-12)*
 
-- Formatting uses **`ruff format`** (installed), not `black` (not installed).
-  The existing unused `ruff-format` reformatter definition is wired up.
-- Linting uses `ruff check` via flymake.
-- LSP is **opt-in**, not automatic: `eglot-ensure` is not hooked into
-  `python-mode` unless a server is present. If `pyright` is wanted, `README`
-  must say to install it (`uv tool install pyright`); if not, the hook is
-  removed.
-- Virtualenv detection should understand `uv`-managed `.venv` directories.
+Stated directly: **`uv`, `ty` and `ruff`. None of the older tooling.**
 
-*Test:* open `<redacted_project>/driver.py`. No failing LSP connection appears in
-`*Messages*`. Saving formats with ruff. A deliberate unused import is flagged.
+| Job | Tool | Not |
+|---|---|---|
+| Environments, dependencies, running | `uv` | pyvenv, virtualenvwrapper, poetry, pipenv, conda |
+| Type checking + language server | `ty` (`ty server`) | pyright, basedpyright, pylsp, jedi-language-server, mypy |
+| Linting | `ruff check` via flymake | flake8, pylint, pyflakes |
+| Formatting | `ruff format` | black, isort, yapf, autopep8 |
+
+The exclusion is enforced, not merely documented. This module previously carried
+`mjb-python-lsp-servers` naming five alternatives
+(`basedpyright-langserver`, `pyright-langserver`, `pylsp`,
+`jedi-language-server`, `ruff-lsp`) and started whichever it found first — so
+installing any of them for an unrelated reason would silently change which
+server ran. It is now a single `mjb-python-lsp-command`, defaulting to
+`("ty" "server")`.
+
+eglot's own Python entry is **replaced** rather than appended to, for the same
+reason: eglot ships a python entry that reaches for pylsp and pyright, and
+leaving it in place would reintroduce the drift by the back door.
+
+`ruff-lsp` is excluded on its own merits as well — it is deprecated upstream in
+favour of `ruff server`. Neither is used here, because ruff already runs
+directly for lint and format and a second language server would duplicate it.
+
+Virtualenv detection understands `uv`-managed `.venv` directories, which needs
+no uv-specific code: uv writes `.venv` into the project root, and a plain upward
+search finds it. This replaces the `pyvenv` package (~600 lines).
+
+*Test:* open a file in a `uv init` project. `major-mode` is `python-ts-mode`;
+`python-shell-interpreter` is the project's `.venv/bin/python`;
+`python-flymake-command` is ruff; eglot attaches with `ty server` and no other;
+`C-c c f` reformats with ruff; a type error is reported through ty. Verified end
+to end 2026-08-12 — ty flagged `Expected int, found Literal["2"]`.
 
 ### R-052 · Markdown support does not depend on absent binaries — P1 [fix · F-09]
 
@@ -788,7 +811,7 @@ scope and its keybinding prefix, if any.
 | R-046 | 1 | goal 3 | 24-bit color asserted, not assumed *(new)* |
 | R-047 | 1 | goal 3 | Font config GUI-scoped and real *(new)* |
 | R-050 | 0 | new | **LaTeX authoring first-class** |
-| R-051 | 0 | fix | Python matches installed toolchain (ruff) |
+| R-051 | 0 | fix | Python is uv + ty + ruff **only**; older tooling excluded by construction *(revised)* |
 | R-052 | 1 | fix | Markdown without missing binaries |
 | R-053 | 1 | new | Spell check in prose |
 | R-054 | 1 | remove | Rust support removed |

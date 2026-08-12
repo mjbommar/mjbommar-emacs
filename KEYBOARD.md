@@ -128,6 +128,11 @@ These live in their own mode maps and cannot collide with the table above.
 | corfu | `TAB / S-TAB / RET` | next / previous / insert |
 | vertico | `C-j / C-k` | next / previous candidate |
 | eshell | `C-u C-c '` | ansi-term, for a real tty |
+| python | `C-c C-u` | uv (sync, add, run ...) |
+| python | `C-c C-y` | ty check |
+| python | `C-c C-l` | ruff check |
+| rust | `C-c C-c / C-c C-l` | cargo check / clippy |
+| rust | `C-c C-t / C-c C-k` | cargo test / any subcommand |
 | eglot | `C-c c R` | rename symbol |
 | eglot | `C-c c a` | code actions |
 | eglot | `C-c c i` | find implementation |

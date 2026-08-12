@@ -241,7 +241,7 @@ those have no legacy terminal encoding and cannot be transmitted through tmux.
 |---|---|---|---|---|
 | LaTeX | `tex-mode` + reftex | — | — | `C-c C-c` builds with latexmk |
 | Markdown | `markdown-mode` | flyspell | — | — |
-| Python | `python-ts-mode` | ruff (flymake) | ruff, on save | if a server is installed |
+| Python | `python-ts-mode` | ruff (flymake) | ruff, on save | `ty server` |
 | Rust | `rust-ts-mode` | `cargo check` / `clippy` | rustfmt, on save | rust-analyzer |
 | C | `c-ts-mode` | — | — | clangd, if installed |
 
@@ -269,6 +269,21 @@ In Rust buffers: `C-c C-c` cargo check, `C-c C-l` clippy, `C-c C-t` test,
 the language server when a mode has none. It used to call
 `mjb-python-format-buffer` directly, so the one "format" key did nothing in
 every language but Python.
+
+**Python is uv + ty + ruff, and nothing else** — no pyright, basedpyright,
+pylsp, jedi, mypy, black, isort, flake8 or pyvenv. That is enforced rather than
+just documented: the module used to try five language servers in preference
+order, so installing any of them for an unrelated reason silently changed which
+one ran. It is now a single `mjb-python-lsp-command` (`ty server`), and eglot's
+own Python entry — which reaches for pylsp and pyright — is *replaced* rather
+than appended to, so the old tools cannot come back through the side door.
+
+`uv` needs no special support: it writes `.venv` into the project root, which
+the plain upward search already finds and uses for the REPL and for subprocesses.
+
+In Python buffers: `C-c C-u` runs uv (sync, add, run, …), `C-c C-y` runs
+`ty check`, `C-c C-l` runs `ruff check`. Formatting is `C-c c f` as everywhere
+else.
 
 `C` works out of the box via `c-ts-mode`. Installing `clangd`
 (`sudo apt install clangd`) is all that's needed for LSP there; eglot already

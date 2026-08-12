@@ -7,9 +7,17 @@
 ;; (so format-on-save silently did nothing), and defined a `ruff-format'
 ;; reformatter that was never bound or hooked -- while ruff IS installed.
 ;;
-;; This module uses what is actually on the machine: ruff for both formatting
-;; and linting, built-in flymake rather than flycheck, and eglot only if a
-;; server is present.
+;; This module uses what is actually on the machine, and deliberately nothing
+;; else.  The toolchain is Astral's, by explicit choice (2026-08-12):
+;;
+;;   uv    environments, dependencies, running things
+;;   ty    type checking and the language server
+;;   ruff  linting and formatting
+;;
+;; No pyright, basedpyright, pylsp, jedi, ruff-lsp, black, isort, flake8, mypy,
+;; pyvenv or virtualenvwrapper.  None of them is installed here, and the older
+;; server list this module used to carry named five of them.  `ruff-lsp' in
+;; particular is upstream-deprecated in favour of `ruff server'.
 ;;
 ;; Requirement refs: R-051.
 
@@ -24,6 +32,7 @@
 (defvar eglot-events-buffer-config)
 (defvar eglot-extend-to-xref)
 (declare-function eglot-ensure "eglot")
+(defvar eglot-server-programs)
 
 (defgroup mjb-python nil "Python editing." :group 'python)
 
@@ -53,31 +62,12 @@
 
 (defun mjb-python-format-buffer ()
   "Format the current buffer with `ruff format'.
-Output is captured and validated before replacing the buffer, so a ruff
-failure leaves your file untouched rather than emptying it.
-`replace-buffer-contents' is used so point, markers and the undo history
-survive the round trip."
+Uses `mjb-format-external', which captures the output and checks the exit
+status before writing anything back, so a ruff failure leaves the buffer
+untouched rather than emptying it."
   (interactive)
-  (unless (executable-find "ruff")
-    (user-error "mjb-python: ruff is not installed"))
-  (let ((out (generate-new-buffer " *mjb-ruff-format*"))
-        (errfile (make-temp-file "mjb-ruff-err"))
-        (origin (point)))
-    (unwind-protect
-        (let ((status (call-process-region (point-min) (point-max) "ruff"
-                                           nil (list out errfile) nil
-                                           "format" "-")))
-          (if (and (integerp status) (zerop status) (> (buffer-size out) 0))
-              (progn
-                (replace-buffer-contents out)
-                (goto-char (min origin (point-max))))
-            (message "mjb-python: ruff format failed (%s): %s"
-                     status
-                     (with-temp-buffer
-                       (insert-file-contents errfile)
-                       (string-trim (buffer-string))))))
-      (kill-buffer out)
-      (delete-file errfile))))
+  (mjb-format-external "ruff" '("format" "--stdin-filename"
+                                "stdin.py" "-")))
 
 (defun mjb-python-maybe-format ()
   "Format on save when `mjb-python-format-on-save' is enabled."
@@ -92,6 +82,8 @@ survive the round trip."
 
 (setq python-indent-offset 4
       python-indent-guess-indent-offset nil  ; do not guess; be consistent
+      ;; Only the fallback: `mjb-python-activate-venv' overrides this per
+      ;; buffer with the project's uv-created .venv/bin/python.
       python-shell-interpreter (or (executable-find "python3") "python3")
       ;; Do not warn about the readline/completion setup on every REPL start.
       python-shell-completion-native-enable nil)
@@ -113,19 +105,33 @@ upward search covers it.  Replaces the `pyvenv' package (~600 lines)."
 
 (add-hook 'python-base-mode-hook #'mjb-python-activate-venv)
 
-;;;; LSP, only if a server exists (R-051) ---------------------------------------
-;; pyright is NOT installed on this machine.  Rather than opening a failing
-;; connection in every Python buffer -- which is what the previous config did --
-;; attach eglot only when a server binary is actually present.
+;;;; LSP: ty, and only ty (R-051) -----------------------------------------------
+;; eglot ships a python entry that reaches for pylsp, pyright and friends.  It
+;; is replaced rather than appended to: leaving it in place would mean that
+;; installing one of those tools by accident silently changes which server
+;; runs, which is exactly the drift this configuration exists to prevent.
+;;
+;; ty is a type checker first; ruff still does linting (flymake, above) and
+;; formatting (below), so the two do not overlap.
 
-(defcustom mjb-python-lsp-servers '("basedpyright-langserver" "pyright-langserver"
-                                    "pylsp" "jedi-language-server" "ruff-lsp")
-  "Language servers to look for, in order of preference."
+(defcustom mjb-python-lsp-command '("ty" "server")
+  "Language server command for Python.
+Astral's `ty'.  Deliberately not a list of alternatives -- see R-051."
   :type '(repeat string) :group 'mjb-python)
 
+(with-eval-after-load 'eglot
+  (setq eglot-server-programs
+        (cons (cons '(python-mode python-ts-mode) mjb-python-lsp-command)
+              (seq-remove (lambda (e)
+                            (let ((k (car e)))
+                              (and (listp k) (memq 'python-ts-mode k))))
+                          eglot-server-programs))))
+
 (defun mjb-python-maybe-start-lsp ()
-  "Start eglot only if one of `mjb-python-lsp-servers' is installed."
-  (when (seq-some #'executable-find mjb-python-lsp-servers)
+  "Start eglot when `mjb-python-lsp-command' names an installed program.
+Attaching unconditionally is what the previous config did with pyright
+absent, so every Python buffer opened a connection that could only fail."
+  (when (executable-find (car mjb-python-lsp-command))
     (require 'eglot)
     (eglot-ensure)))
 
@@ -136,6 +142,59 @@ upward search covers it.  Replaces the `pyvenv' package (~600 lines)."
         eglot-sync-connect 0            ; never block the UI waiting to connect
         eglot-events-buffer-config '(:size 0 :format short)
         eglot-extend-to-xref t))
+
+
+;;;; uv ------------------------------------------------------------------------
+;; The only dependency/environment tool used here.  `uv' writes .venv into the
+;; project root, which is what `mjb-python-activate-venv' above finds, so the
+;; two halves already agree without any uv-specific plumbing.
+
+(defun mjb-python--project-root ()
+  "Directory of the nearest pyproject.toml, or nil."
+  (when-let* ((dir (locate-dominating-file default-directory "pyproject.toml")))
+    (expand-file-name dir)))
+
+(defun mjb-python-uv (command &optional edit)
+  "Run uv COMMAND at the project root, asynchronously via `compile'.
+With EDIT non-nil (\\[universal-argument]), edit the command line first."
+  (interactive (list (completing-read
+                      "uv: " '("sync" "lock" "add" "remove" "run pytest"
+                               "run python" "tree" "export")
+                      nil nil "sync")
+                     current-prefix-arg))
+  (unless (executable-find "uv")
+    (user-error "mjb-python: uv is not installed"))
+  (let* ((root (or (mjb-python--project-root)
+                   (user-error "mjb-python: no pyproject.toml above %s"
+                               default-directory)))
+         (cmd (format "uv %s" command))
+         (default-directory root))
+    (compile (if edit (read-shell-command "uv: " cmd) cmd))))
+
+(defun mjb-python-check ()
+  "Type-check the project with `ty check'."
+  (interactive)
+  (unless (executable-find "ty")
+    (user-error "mjb-python: ty is not installed"))
+  (let ((default-directory (or (mjb-python--project-root) default-directory)))
+    (compile "ty check")))
+
+(defun mjb-python-lint ()
+  "Lint the project with `ruff check'."
+  (interactive)
+  (let ((default-directory (or (mjb-python--project-root) default-directory)))
+    (compile "ruff check --output-format=concise")))
+
+;; C-c C-<letter> is the major-mode range, so these cannot collide with
+;; `mjb-key-table', which owns C-c <letter>.
+(with-eval-after-load 'python
+  (keymap-set python-mode-map "C-c C-u" #'mjb-python-uv)
+  (keymap-set python-mode-map "C-c C-y" #'mjb-python-check)
+  (keymap-set python-mode-map "C-c C-l" #'mjb-python-lint)
+  (when (boundp 'python-ts-mode-map)
+    (keymap-set python-ts-mode-map "C-c C-u" #'mjb-python-uv)
+    (keymap-set python-ts-mode-map "C-c C-y" #'mjb-python-check)
+    (keymap-set python-ts-mode-map "C-c C-l" #'mjb-python-lint)))
 
 (provide 'mjb-python)
 ;;; mjb-python.el ends here
