@@ -3,7 +3,7 @@
 A terminal-first Emacs 30 configuration for writing books in LaTeX, with GUI
 support, built from Emacs built-ins wherever a built-in exists.
 
-**13 packages.** The previous version of this configuration had 85.
+**11 packages.** The previous version of this configuration had 85.
 
 ## Design
 
@@ -101,7 +101,7 @@ lisp/
   mjb-python.el     ruff format + lint, optional eglot, .venv detection
   mjb-formats.el    json/toml/yaml/csv/org, tree-sitter grammars
   mjb-shell.el      vterm, eshell
-  mjb-ai.el         gptel, minuet
+  mjb-ai.el         Claude chat + inline completion (no packages)
   mjb-keys.el       THE keybinding table
 scripts/
   smoke.sh              byte-compile + load + key check

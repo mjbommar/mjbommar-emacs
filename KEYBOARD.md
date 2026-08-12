@@ -104,7 +104,7 @@ or a function key, all of which a terminal can send.
 
 | Key | Stays | Why |
 |---|---|---|
-| `M-y` | `yank-pop` | minuet had taken it; core muscle memory (R-063) |
+| `M-y` | `yank-pop` | the old config's minuet took it; core muscle memory (R-063) |
 | `M-l` | `downcase-word` | recenter lives on `C-c l` instead |
 | `M-0` | `digit-argument` | treemacs had taken it; tabs use `C-x t <n>` |
 | `C-.` `C-;` `C-=` `C->` `C-<` `C-S-c` | unbound | cannot be typed in this terminal (F-06) |
@@ -120,7 +120,7 @@ These live in their own mode maps and cannot collide with the table above.
 | LaTeX | `C-c C-k` | clean aux files |
 | LaTeX | `C-c C-t` | RefTeX table of contents |
 | LaTeX | `C-c (` `C-c )` `C-c [` | RefTeX label / ref / cite |
-| minuet (while a suggestion shows) | `M-a` `M-A` `M-n` `M-p` `M-e` | accept line / all / next / prev / dismiss |
+| Claude chat buffer | `C-c C-c` `C-c C-k` | send / cancel |
 | corfu | `TAB` `S-TAB` `RET` | next / previous / insert |
 | vertico | `C-j` `C-k` | next / previous candidate |
 

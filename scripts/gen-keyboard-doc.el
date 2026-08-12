@@ -58,7 +58,7 @@
 
   (insert "\n## Deliberately NOT bound\n\n")
   (insert "| Key | Stays | Why |\n|---|---|---|\n")
-  (insert "| `M-y` | `yank-pop` | minuet had taken it; core muscle memory (R-063) |\n")
+  (insert "| `M-y` | `yank-pop` | the old config's minuet took it; core muscle memory (R-063) |\n")
   (insert "| `M-l` | `downcase-word` | recenter lives on `C-c l` instead |\n")
   (insert "| `M-0` | `digit-argument` | treemacs had taken it; tabs use `C-x t <n>` |\n")
   (insert "| `C-.` `C-;` `C-=` `C->` `C-<` `C-S-c` | unbound | cannot be typed in this terminal (F-06) |\n")
@@ -71,7 +71,7 @@
   (insert "| LaTeX | `C-c C-k` | clean aux files |\n")
   (insert "| LaTeX | `C-c C-t` | RefTeX table of contents |\n")
   (insert "| LaTeX | `C-c (` `C-c )` `C-c [` | RefTeX label / ref / cite |\n")
-  (insert "| minuet (while a suggestion shows) | `M-a` `M-A` `M-n` `M-p` `M-e` | accept line / all / next / prev / dismiss |\n")
+  (insert "| Claude chat buffer | `C-c C-c` `C-c C-k` | send / cancel |\n")
   (insert "| corfu | `TAB` `S-TAB` `RET` | next / previous / insert |\n")
   (insert "| vertico | `C-j` `C-k` | next / previous candidate |\n")
 
