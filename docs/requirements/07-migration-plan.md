@@ -83,7 +83,7 @@ the rebuild is worth doing.
 
 **Gate** — all against real files, not a toy document:
 
-- `<redacted-paper>/paper/main.tex` builds to PDF from inside Emacs.
+- The paper project's `paper/main.tex` builds to PDF from inside Emacs.
 - Editing `sections/01_introduction.tex` and pressing build compiles
   `main.tex`, not the section.
 - A deliberate `\undefinedmacro` produces a navigable error that lands on the
@@ -91,8 +91,7 @@ the rebuild is worth doing.
 - `\ref{` completes labels defined elsewhere in the project.
 - `\cite{` completes bibliography keys.
 - The build runs asynchronously — Emacs stays responsive.
-- `<redacted-book>`, `<redacted-book>`, and
-  `<redacted-book>/book` all build too. Four projects, four
+- The other three book projects all build too. Four projects, four
   different structures; one working on its own proves little.
 
 ---
@@ -107,7 +106,7 @@ Scope: `mjb-prose.el` (`R-053` spell check, markdown `R-052`), `mjb-python.el`
 `R-041` tree-sitter).
 
 **Gate:**
-- Opening `<redacted_project>/driver.py` produces no LSP error in `*Messages*`; saving
+- Opening a Python file produces no LSP error in `*Messages*`; saving
   formats with ruff; an unused import is flagged.
 - A misspelling in `chapters/01-arpanet.tex` is highlighted and `\textbf` is
   not.

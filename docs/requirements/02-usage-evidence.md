@@ -33,16 +33,19 @@ in four different projects.
 
 The projects appearing across both files:
 
-- `<redacted-book>` (LaTeX)
-- `<redacted-paper>` (LaTeX paper: `main.tex`, `sections/00_abstract.tex`, `sections/01_introduction.tex`)
-- `<redacted-book>` (LaTeX)
-- `<redacted-book>/book` (LaTeX, incl. `generated/metadata.tex`)
-- `<redacted-book>` (LaTeX)
-- `<redacted-book>/<redacted-book>` (CSV + build outputs)
-- `<redacted-site>` (Astro)
-- `<redacted-project>` (C, kernel patches)
-- `<redacted-project>/*` (Python + Markdown docs)
-- `<redacted-project>` (Python)
+- four long-form **book** projects (LaTeX), each `main.tex` plus a
+  `chapters/` or `latex/` subdirectory
+- one **paper** project (LaTeX: `main.tex` with `sections/00_abstract.tex`,
+  `sections/01_introduction.tex`)
+- one book with generated content (`generated/metadata.tex`) and one with
+  CSV-driven build outputs
+- one static site (Astro)
+- one **C** project: a kernel-patch reproduction directory
+- two **Python** codebases, one of them with Markdown documentation alongside
+
+Project names are omitted throughout this document: several are unpublished
+work and one is client work. The shapes are what the analysis depends on, and
+the shapes are all here.
 
 **At the moment of writing this document, the running Emacs process is `emacs
 main.tex`.** That is the single strongest signal in the whole review.
@@ -55,10 +58,9 @@ command, no error navigation, no `reftex`, no PDF viewing, and no
 
 ## 2. Python is real but secondary; Rust is absent
 
-Python appears in `save-place`: `<redacted_project>/{driver,harnesses}.py`,
-`<redacted_project>/tasks/{clause_qa,multihop2}.py`, `<redacted-project>/src/api/v1/api.py`,
-`<redacted-project>/proposal/generate.py`. `uv` is installed and `pyproject.toml`
-exists in a dozen personal projects.
+Python appears in `save-place`: six files across three projects, in the usual
+`src/`, `tasks/` and top-level-module shapes. `uv` is installed and
+`pyproject.toml` exists in a dozen personal projects.
 
 **No `.rs` file appears in recentf, save-place, or file-name-history.** The
 config carries `rust-mode`, `cargo`, `flycheck-rust` (and `flycheck` itself,
@@ -78,12 +80,13 @@ keeping `c-mode` sane, not enough to justify an LSP stack.
 
 Three entries. Two distinct commands. Both are prose-editing commands.
 
-`search-ring` is entirely content searches inside prose and code — `"<redacted-term>"`,
-`"<redacted-term>"`, `"<redacted-term>"`, `"<redacted-term>"`, `"<redacted-term>"`,
-`"<redacted-term>"`, `"<redacted-term>"`. No regexp-search-ring at all.
+`search-ring` holds seven entries, all plain content searches inside prose and
+code — a mix of English phrases and C identifiers, no regexps. The terms
+themselves are not reproduced here; what matters is that every one is a
+*content* search rather than a structural or symbol lookup.
 
-`consult--buffer-history` has two entries, both from the kernel-patch work.
-`buffer-name-history` has one. `goto-line-history` has one (`"989"`).
+`consult--buffer-history` has two entries, both from the C work.
+`buffer-name-history` has one. `goto-line-history` has one.
 
 The reading is: this Emacs is used as a careful, fast text editor. It is not
 being driven as an IDE, and the elaborate discovery machinery (hydra menu,

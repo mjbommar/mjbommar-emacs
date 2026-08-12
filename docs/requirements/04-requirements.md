@@ -543,7 +543,7 @@ Required capabilities:
 
 | # | Capability | Acceptance test |
 |---|---|---|
-| a | Build the current document with `latexmk` from inside Emacs, with a keybinding | Open `<redacted-paper>/paper/main.tex`, press the build key, a PDF is produced |
+| a | Build the current document with `latexmk` from inside Emacs, with a keybinding | Open a multi-file paper's `paper/main.tex`, press the build key, a PDF is produced |
 | b | Build errors are navigable | After a deliberate `\undefinedmacro`, jumping to the next error lands on the right line in the right `\input` file |
 | c | Build runs asynchronously | Emacs stays responsive during a 20-second build |
 | d | Multi-file projects resolve the master document | Editing `sections/01_introduction.tex` builds `main.tex`, not the section |

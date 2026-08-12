@@ -44,16 +44,16 @@
       ;; Directories that are projects without being a git repository.
       ;;
       ;; Deliberately NOT here: "main.tex" and "Makefile".  Both seemed like
-      ;; good ideas and both are wrong -- verified.  Your book repos keep the
-      ;; sources in a subdirectory (<redacted-paper>/paper/,
-      ;; <redacted-book>/latex/) which also carries a Makefile, so
-      ;; those markers made the SUBDIRECTORY the project root: searching a
+      ;; good ideas and both are wrong -- verified.  The book repos here keep
+      ;; sources in a subdirectory (<project>/paper/, <project>/latex/) which
+      ;; also carries a Makefile, so those markers made the SUBDIRECTORY the
+      ;; project root: searching a
       ;; chapter could not see docs/, and tab-bar would have labelled the tabs
       ;; "paper" and "latex" instead of the book names.  The git repository
       ;; root is what "project" should mean here.
       ;;
-      ;; "pyproject.toml" went the same way: <redacted-book>
-      ;; has one in book/, which made book/ the root rather than the repo.
+      ;; "pyproject.toml" went the same way: one book repo has one in book/,
+      ;; which made book/ the root rather than the repo.
       ;;
       ;; The rule is therefore: the project is the git repository. Drop a
       ;; `.project' file somewhere to override that deliberately.
