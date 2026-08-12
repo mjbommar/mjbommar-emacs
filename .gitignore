@@ -58,3 +58,4 @@ debug-*.el
 /var/
 /etc/
 /eln-cache/
+elpa/

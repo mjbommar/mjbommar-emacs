@@ -1,9 +1,8 @@
 ;;; init.el --- Loader -*- lexical-binding: t -*-
 
 ;;; Commentary:
-;; This file is a loader and nothing else.  All configuration lives in
-;; lisp/mjb-*.el, one topic per file.  If you are looking for where to change
-;; something, look at the module list at the bottom -- the names are the map.
+;; A loader and nothing else.  Configuration lives in lisp/mjb-*.el, one topic
+;; per file; the module list at the bottom is the map.
 ;;
 ;; Design rules (see docs/requirements/):
 ;;   - Built-in first.  Then hand-written elisp.  Then a package, justified.
@@ -17,9 +16,9 @@
 (add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
 
 ;; --- Package system (R-008) --------------------------------------------------
-;; Built-in package.el, deliberately.  elpaca and straight are each several
-;; thousand lines of external dependency whose job is managing dependencies --
-;; at ~16 packages that trade does not pay.
+;; Built-in package.el, deliberately: elpaca and straight are each thousands of
+;; lines of external dependency whose job is managing dependencies, which does
+;; not pay at this scale.
 (require 'package)
 (setq package-archives
       '(("gnu"    . "https://elpa.gnu.org/packages/")
@@ -31,21 +30,16 @@
       package-quickstart t)
 
 (defvar mjb-packages
-  '(;; Completion UI -- minimal by design; these wrap built-in APIs.
-    vertico orderless marginalia consult corfu cape
-    ;; Version control -- essential complexity, not bloat.
-    magit diff-hl
-    ;; Formats with no built-in equivalent.
-    markdown-mode csv-mode
-    ;; Terminal emulator (compiled module).
-    vterm
-    ;; AI.
-    gptel minuet
-    ;; Theme: GNU ELPA, signed, built for terminal contrast.
-    ef-themes)
+  '(vertico orderless marginalia consult corfu cape ; completion: wrap built-in APIs
+    magit diff-hl                                   ; git: essential complexity
+    markdown-mode csv-mode                          ; no built-in equivalent
+    vterm                                           ; compiled terminal emulator
+    gptel minuet)                                   ; AI
   "Every package this configuration installs.
-Anything not on this list is a transitive dependency.  Adding an entry
-requires a comment saying what it does that a built-in cannot.")
+Anything not listed is a transitive dependency.  Adding an entry requires a
+comment saying what it does that a built-in cannot.  Note there is no theme
+package: the Modus themes ship with Emacs 30 and are built to a measured
+contrast ratio, which is what terminal and GUI frames both need.")
 
 (defun mjb-install-packages ()
   "Install any member of `mjb-packages' that is missing.  Idempotent (R-073)."
