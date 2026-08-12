@@ -19,7 +19,7 @@ Emacs 30 already ships `use-package`, `which-key`, `eglot`, `project`,
 `modus-themes` and more. Most of what a config used to install is now in the
 box.
 
-Everything is verifiable: `./scripts/smoke.sh` byte-compiles all 13 modules,
+Everything is verifiable: `./scripts/smoke.sh` byte-compiles all 14 modules,
 loads the whole configuration, and asserts every keybinding resolves to the
 command it claims.
 
@@ -88,8 +88,9 @@ machine api.anthropic.com login apikey password sk-ant-...
 
 ```
 early-init.el     GC, native compilation, package paths, frame
-init.el           loader only (70 lines)
+init.el           loader only (57 lines)
 lisp/
+  mjb-package.el    declared package set, lockfile, pruning
   mjb-core.el       defaults, backups, auto-save, auth-source, OSC 52 clipboard
   mjb-ui.el         modus theme, hand-written modeline, tab-bar, fonts
   mjb-completion.el vertico, orderless, marginalia, consult, corfu, cape
@@ -168,7 +169,7 @@ The primary environment is `emacs -nw` inside tmux inside Ghostty.
 ./scripts/smoke.sh
 ```
 
-Checks that all 13 modules byte-compile with zero warnings, that the whole
+Checks that all 14 modules byte-compile with zero warnings, that the whole
 configuration loads with no errors, and that every declared keybinding resolves
 to the command it claims — including that `M-y` is still `yank-pop`.
 
