@@ -85,7 +85,7 @@ Graphical frames have a fringe; terminal frames do not, and without
 
 ;; Keep the indicators honest when magit stages or commits behind our back.
 (with-eval-after-load 'magit
-  (add-hook 'magit-pre-refresh-hook #'diff-hl-magit-pre-refresh)
+  ;; diff-hl 1.11 made the pre-refresh hook obsolete; post-refresh is enough.
   (add-hook 'magit-post-refresh-hook #'diff-hl-magit-post-refresh))
 
 ;;;; Built-in VC ----------------------------------------------------------------

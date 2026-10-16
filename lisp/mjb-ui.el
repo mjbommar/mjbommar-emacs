@@ -228,6 +228,8 @@ Cached per buffer; call `mjb-modeline-refresh-project' if it goes stale."
 ;;;; Miscellaneous chrome -------------------------------------------------------
 
 (setq-default cursor-in-non-selected-windows nil)
+;; Only defined in GUI-capable builds; declare it so emacs-nox compiles cleanly.
+(defvar x-stretch-cursor)
 (setq highlight-nonselected-windows nil
       x-stretch-cursor nil
       ;; Do not resize the minibuffer for one long line.
