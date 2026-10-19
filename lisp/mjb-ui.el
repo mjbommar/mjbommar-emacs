@@ -4,7 +4,7 @@
 ;; Everything you look at.  Zero packages: the theme, the tab bar, and the
 ;; modeline are all built into Emacs 30.
 ;;
-;;   theme     modus-operandi / modus-vivendi   built-in, WCAG-AAA contrast
+;;   theme     Modus fallback / optional Frost desktop palette
 ;;   tabs      tab-bar-mode                     built-in (D-2: workspaces)
 ;;   modeline  hand-written mode-line-format    ~40 lines vs doom-modeline's 4761
 ;;   fonts     Berkeley Mono, GUI-guarded       R-047
@@ -52,10 +52,19 @@ Stacking themes is the usual cause of unreadable half-applied colours."
                       mjb-light-theme
                     mjb-dark-theme)))
 
-;; Ghostty is configured `light:Catppuccin Latte,dark:Catppuccin Mocha', i.e. it
-;; follows the system appearance.  Emacs has no portable way to read that, so we
-;; default to dark and leave the toggle on a key (R-043 keeps auto-following P2).
+;; Start with the built-in dark theme.  The optional desktop integration below
+;; follows the generated Frost/Mocha/Nord palette; without it, the existing
+;; manual light/dark toggle and Modus defaults remain available.
 (mjb-load-theme mjb-dark-theme)
+
+;; Follow the optional, locally generated GNOME palette when available.  Keep
+;; the built-in Modus themes as the fallback on machines without Frost desktop.
+(let ((integration (expand-file-name
+                    "frost-desktop/emacs/frost-follow.el"
+                    (or (getenv "XDG_CONFIG_HOME") "~/.config/"))))
+  (when (file-readable-p integration)
+    (load integration nil t)
+    (setq mjb-dark-theme 'frost-desktop)))
 
 ;;;; Fonts (R-047) --------------------------------------------------------------
 ;; Only meaningful on a graphical frame.  In the terminal the font is Ghostty's
